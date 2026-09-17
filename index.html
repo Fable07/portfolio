@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
+    />
+    <meta name="theme-color" content="#361111" />
+    <meta name="description" content="Jefferson S. Caragay - Portfolio" />
+    <title>Jefferson S. Caragay - Portfolio</title>
+    <style>
+      #loading-screen {
+        position: fixed;
+        inset: 0;
+        background: #0f1724;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+        gap: 20px;
+        transition:
+          opacity 0.5s ease,
+          visibility 0.5s ease;
+      }
+      #loading-screen.hidden {
+        opacity: 0;
+        visibility: hidden;
+      }
+      .loading-name {
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #7cdbb6;
+        letter-spacing: 1px;
+      }
+      .loading-role {
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        font-size: 0.85rem;
+        color: #9aa4b2;
+        letter-spacing: 0.5px;
+        margin-top: -12px;
+      }
+      .loading-bar-wrap {
+        width: 180px;
+        height: 3px;
+        background: rgba(124, 219, 182, 0.15);
+        border-radius: 99px;
+        overflow: hidden;
+      }
+      .loading-bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #7cdbb6, #49c19b);
+        border-radius: 99px;
+        animation: loadBar 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      }
+      @keyframes loadBar {
+        0% {
+          width: 0%;
+        }
+        60% {
+          width: 75%;
+        }
+        100% {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Loading screen -->
+    <div id="loading-screen">
+      <div class="loading-name">Jefferson S. Caragay</div>
+      <div class="loading-role">Aspiring Fullstack Developer</div>
+      <div class="loading-bar-wrap">
+        <div class="loading-bar"></div>
+      </div>
+    </div>
+
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+    <script>
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          const screen = document.getElementById('loading-screen')
+          if (screen) {
+            screen.classList.add('hidden')
+            setTimeout(() => screen.remove(), 500)
+          }
+        }, 1300)
+      })
+    </script>
+  </body>
+</html>
