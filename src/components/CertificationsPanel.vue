@@ -51,14 +51,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { certificationsApi } from '@/api'
 
 const certifications = ref([])
 const loading = ref(true)
 
 onMounted(async () => {
   try {
-    const res = await fetch('http://127.0.0.1:8000/api/certifications')
-    certifications.value = await res.json()
+    certifications.value = await certificationsApi.list()
   } catch {
     certifications.value = []
   } finally {

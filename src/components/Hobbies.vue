@@ -33,6 +33,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { hobbiesApi } from '@/api'
 
 const hobbies = ref([])
 const loading = ref(true)
@@ -40,8 +41,7 @@ const loading = ref(true)
 // Fetch hobbies from Laravel API on mount
 onMounted(async () => {
   try {
-    const res = await fetch('http://127.0.0.1:8000/api/hobbies')
-    hobbies.value = await res.json()
+    hobbies.value = await hobbiesApi.list()
   } catch {
     hobbies.value = []
   } finally {

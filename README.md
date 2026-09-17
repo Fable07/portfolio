@@ -42,3 +42,19 @@ npm run build
 ```sh
 npm run lint
 ```
+
+## Environment
+
+The API base URL comes from `VITE_API_URL` (see `.env.example`).
+
+- `npm run dev` uses `.env.development` (`http://127.0.0.1:8000/api`).
+- For production builds, create `.env.production.local` with the deployed API URL.
+
+## Admin access
+
+The admin panel at `/admin` signs in against the Laravel API (Sanctum tokens).
+Create or reset the admin account from the backend project:
+
+```sh
+php artisan admin:create you@example.com --name="Your Name"
+```

@@ -8,6 +8,7 @@ import Resume from './components/Resume.vue'
 import Projects from './components/Projects.vue'
 import Hobbies from './components/Hobbies.vue'
 import DarkModeToggle from './components/DarkModeToggle.vue'
+import { visitorsApi } from '@/api'
 
 const navOpen = ref(false)
 const activeSection = ref('profile')
@@ -32,13 +33,7 @@ function getVisitorId() {
 
 async function loadVisitorCount() {
   try {
-    const visitorId = getVisitorId()
-    const res = await fetch('http://127.0.0.1:8000/api/visitors/increment', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ visitor_id: visitorId }),
-    })
-    const data = await res.json()
+    const data = await visitorsApi.increment(getVisitorId())
     visitorCount.value = data.count
   } catch {
     visitorCount.value = 0

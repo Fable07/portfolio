@@ -102,6 +102,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { projectsApi } from '@/api'
 
 const projects = ref([])
 const loading = ref(true)
@@ -109,8 +110,7 @@ const activeFilter = ref('All')
 
 onMounted(async () => {
   try {
-    const res = await fetch('http://127.0.0.1:8000/api/projects')
-    projects.value = await res.json()
+    projects.value = await projectsApi.list()
   } catch {
     projects.value = []
   } finally {

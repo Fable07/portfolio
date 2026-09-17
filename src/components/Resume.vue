@@ -83,6 +83,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { resumeApi, timelineApi } from '@/api'
 
 const pdfUrl = ref('')
 const pdfLoading = ref(true)
@@ -98,8 +99,7 @@ onMounted(async () => {
 // Fetch resume PDF URL from API
 async function fetchPdf() {
   try {
-    const res = await fetch('http://127.0.0.1:8000/api/resume')
-    const data = await res.json()
+    const data = await resumeApi.get()
     pdfUrl.value = data.pdf_url || ''
   } catch {
     pdfUrl.value = '/resume.pdf'
@@ -111,8 +111,7 @@ async function fetchPdf() {
 // Fetch timeline entries from API
 async function fetchTimeline() {
   try {
-    const res = await fetch('http://127.0.0.1:8000/api/timeline')
-    timeline.value = await res.json()
+    timeline.value = await timelineApi.list()
   } catch {
     timeline.value = []
   } finally {

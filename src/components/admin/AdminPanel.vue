@@ -1,11 +1,28 @@
 <!-- AdminPanel.vue — Private portfolio manager -->
 <template>
   <!-- ══════════════════════ LOGIN GATE ══════════════════════ -->
-  <div v-if="!authenticated" class="admin-login">
-    <div class="login-card">
+  <div v-if="restoring" class="admin-login">
+    <p class="login-sub">Checking session…</p>
+  </div>
+
+  <div v-else-if="!auth.isAuthenticated" class="admin-login">
+    <form class="login-card" @submit.prevent="login">
       <div class="login-logo">🔐</div>
       <h2 class="login-title">Admin Access</h2>
       <p class="login-sub">Portfolio Manager</p>
+
+      <div class="field">
+        <label class="field__label" for="admin-email">Email</label>
+        <input
+          id="admin-email"
+          v-model.trim="emailInput"
+          type="email"
+          class="field__input"
+          placeholder="you@example.com"
+          autocomplete="username"
+          required
+        />
+      </div>
 
       <div class="field">
         <label class="field__label" for="admin-pass">Password</label>
@@ -16,8 +33,8 @@
             :type="showPassword ? 'text' : 'password'"
             class="field__input"
             placeholder="Enter admin password"
-            @keyup.enter="login"
             autocomplete="current-password"
+            required
           />
           <button
             type="button"
@@ -30,10 +47,15 @@
         </div>
       </div>
 
-      <p v-if="loginError" class="login-error">{{ loginError }}</p>
-      <button class="btn-primary" @click="login" :disabled="!passwordInput">Sign In</button>
-      <p class="login-hint">Default password: <code>admin123</code></p>
-    </div>
+      <p v-if="loginError" class="login-error" role="alert">{{ loginError }}</p>
+      <button
+        type="submit"
+        class="btn-primary"
+        :disabled="!emailInput || !passwordInput || loggingIn"
+      >
+        {{ loggingIn ? 'Signing in…' : 'Sign In' }}
+      </button>
+    </form>
   </div>
 
   <!-- ══════════════════════ ADMIN DASHBOARD ══════════════════════ -->
@@ -665,37 +687,64 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-
-const API = 'http://127.0.0.1:8000/api'
-const ADMIN_PASSWORD = 'admin123'
-const AUTH_KEY = 'admin:auth'
+import { ref, reactive, watch, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import {
+  certificationsApi,
+  hobbiesApi,
+  projectsApi,
+  resumeApi,
+  timelineApi,
+} from '@/api'
 
 /* ── Auth ── */
-const authenticated = ref(false)
+const auth = useAuthStore()
+const restoring = ref(!!auth.token)
+const emailInput = ref('')
 const passwordInput = ref('')
 const showPassword = ref(false)
 const loginError = ref('')
+const loggingIn = ref(false)
 
-function login() {
-  if (passwordInput.value === ADMIN_PASSWORD) {
-    authenticated.value = true
-    loginError.value = ''
-    sessionStorage.setItem(AUTH_KEY, '1')
-    loadCerts()
-    loadProjects()
-    loadResume()
-    loadTimeline()
-    loadHobbies() // load hobbies on login
-  } else {
-    loginError.value = 'Incorrect password. Try again.'
+function loadAll() {
+  loadCerts()
+  loadProjects()
+  loadResume()
+  loadTimeline()
+  loadHobbies()
+}
+
+async function login() {
+  loggingIn.value = true
+  loginError.value = ''
+  try {
+    await auth.login(emailInput.value, passwordInput.value)
+    passwordInput.value = ''
+    loadAll()
+  } catch (err) {
+    loginError.value = err.errors?.email?.[0] || err.message
+  } finally {
+    loggingIn.value = false
   }
 }
 
-function logout() {
-  authenticated.value = false
+async function logout() {
+  await auth.logout()
   passwordInput.value = ''
-  sessionStorage.removeItem(AUTH_KEY)
+}
+
+// Token expired or revoked mid-session — the store has already cleared it
+watch(
+  () => auth.sessionExpired,
+  (expired) => {
+    if (expired) loginError.value = 'Your session expired. Please sign in again.'
+  },
+)
+
+/** Show the API's message (e.g. validation errors) instead of a generic one. */
+function errorMessage(err) {
+  const firstFieldError = err.errors && Object.values(err.errors)[0]?.[0]
+  return firstFieldError || err.message || 'Failed to save. Try again.'
 }
 
 /* ── Tabs ── */
@@ -722,8 +771,7 @@ const certLoading = ref(false)
 async function loadCerts() {
   certLoading.value = true
   try {
-    const res = await fetch(`${API}/certifications`)
-    certifications.value = await res.json()
+    certifications.value = await certificationsApi.list()
   } catch {
     certifications.value = []
   } finally {
@@ -766,21 +814,13 @@ async function saveCert() {
   }
   certModal.saving = true
   try {
-    const url = certModal.isEdit
-      ? `${API}/certifications/${certModal.form.id}`
-      : `${API}/certifications`
-    const method = certModal.isEdit ? 'PUT' : 'POST'
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(certModal.form),
-    })
-    if (!res.ok) throw new Error()
+    if (certModal.isEdit) await certificationsApi.update(certModal.form.id, certModal.form)
+    else await certificationsApi.create(certModal.form)
     await loadCerts()
     certModal.open = false
     showSave('✔ Certification saved', 'success')
-  } catch {
-    certModal.error = 'Failed to save. Try again.'
+  } catch (err) {
+    certModal.error = errorMessage(err)
   } finally {
     certModal.saving = false
   }
@@ -793,8 +833,7 @@ const projLoading = ref(false)
 async function loadProjects() {
   projLoading.value = true
   try {
-    const res = await fetch(`${API}/projects`)
-    projects.value = await res.json()
+    projects.value = await projectsApi.list()
   } catch {
     projects.value = []
   } finally {
@@ -854,19 +893,13 @@ async function saveProject() {
   }
   projectModal.saving = true
   try {
-    const url = projectModal.isEdit ? `${API}/projects/${projectModal.form.id}` : `${API}/projects`
-    const method = projectModal.isEdit ? 'PUT' : 'POST'
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(projectModal.form),
-    })
-    if (!res.ok) throw new Error()
+    if (projectModal.isEdit) await projectsApi.update(projectModal.form.id, projectModal.form)
+    else await projectsApi.create(projectModal.form)
     await loadProjects()
     projectModal.open = false
     showSave('✔ Project saved', 'success')
-  } catch {
-    projectModal.error = 'Failed to save. Try again.'
+  } catch (err) {
+    projectModal.error = errorMessage(err)
   } finally {
     projectModal.saving = false
   }
@@ -898,17 +931,13 @@ function confirmDeleteProject(project) {
 async function deleteItem() {
   deleteConfirm.deleting = true
   try {
-    // Determine endpoint based on type
-    const endpoint =
-      deleteConfirm.type === 'cert'
-        ? 'certifications'
-        : deleteConfirm.type === 'project'
-          ? 'projects'
-          : deleteConfirm.type === 'timeline'
-            ? 'timeline'
-            : 'hobbies'
-
-    await fetch(`${API}/${endpoint}/${deleteConfirm.id}`, { method: 'DELETE' })
+    const apis = {
+      cert: certificationsApi,
+      project: projectsApi,
+      timeline: timelineApi,
+      hobby: hobbiesApi,
+    }
+    await apis[deleteConfirm.type].remove(deleteConfirm.id)
 
     // Reload the correct list after delete
     if (deleteConfirm.type === 'cert') await loadCerts()
@@ -918,8 +947,8 @@ async function deleteItem() {
 
     deleteConfirm.open = false
     showSave('✔ Deleted successfully', 'success')
-  } catch {
-    showSave('✘ Delete failed. Try again.', 'error')
+  } catch (err) {
+    showSave(`✘ Delete failed: ${err.message}`, 'error')
   } finally {
     deleteConfirm.deleting = false
   }
@@ -933,8 +962,7 @@ const timelineLoading = ref(false)
 async function loadTimeline() {
   timelineLoading.value = true
   try {
-    const res = await fetch(`${API}/timeline`)
-    timeline.value = await res.json()
+    timeline.value = await timelineApi.list()
   } catch {
     timeline.value = []
   } finally {
@@ -1008,21 +1036,13 @@ async function saveTimeline() {
   }
   timelineModal.saving = true
   try {
-    const url = timelineModal.isEdit
-      ? `${API}/timeline/${timelineModal.form.id}`
-      : `${API}/timeline`
-    const method = timelineModal.isEdit ? 'PUT' : 'POST'
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(timelineModal.form),
-    })
-    if (!res.ok) throw new Error()
+    if (timelineModal.isEdit) await timelineApi.update(timelineModal.form.id, timelineModal.form)
+    else await timelineApi.create(timelineModal.form)
     await loadTimeline()
     timelineModal.open = false
     showSave('✔ Timeline entry saved', 'success')
-  } catch {
-    timelineModal.error = 'Failed to save. Try again.'
+  } catch (err) {
+    timelineModal.error = errorMessage(err)
   } finally {
     timelineModal.saving = false
   }
@@ -1047,8 +1067,7 @@ const hobbyLoading = ref(false)
 async function loadHobbies() {
   hobbyLoading.value = true
   try {
-    const res = await fetch(`${API}/hobbies`)
-    hobbies.value = await res.json()
+    hobbies.value = await hobbiesApi.list()
   } catch {
     hobbies.value = []
   } finally {
@@ -1092,19 +1111,13 @@ async function saveHobby() {
   }
   hobbyModal.saving = true
   try {
-    const url = hobbyModal.isEdit ? `${API}/hobbies/${hobbyModal.form.id}` : `${API}/hobbies`
-    const method = hobbyModal.isEdit ? 'PUT' : 'POST'
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(hobbyModal.form),
-    })
-    if (!res.ok) throw new Error()
+    if (hobbyModal.isEdit) await hobbiesApi.update(hobbyModal.form.id, hobbyModal.form)
+    else await hobbiesApi.create(hobbyModal.form)
     await loadHobbies()
     hobbyModal.open = false
     showSave('✔ Hobby saved', 'success')
-  } catch {
-    hobbyModal.error = 'Failed to save. Try again.'
+  } catch (err) {
+    hobbyModal.error = errorMessage(err)
   } finally {
     hobbyModal.saving = false
   }
@@ -1129,8 +1142,7 @@ const resumeSaving = ref(false)
 async function loadResume() {
   resumeLoading.value = true
   try {
-    const res = await fetch(`${API}/resume`)
-    const data = await res.json()
+    const data = await resumeApi.get()
     resumeUrl.value = data.pdf_url || ''
   } catch {
     resumeUrl.value = ''
@@ -1143,30 +1155,19 @@ async function saveResume() {
   if (!resumeUrl.value.trim()) return
   resumeSaving.value = true
   try {
-    const res = await fetch(`${API}/resume`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pdf_url: resumeUrl.value }),
-    })
-    if (!res.ok) throw new Error()
+    await resumeApi.update(resumeUrl.value)
     showSave('✔ Resume URL saved', 'success')
-  } catch {
-    showSave('✘ Failed to save. Try again.', 'error')
+  } catch (err) {
+    showSave(`✘ ${errorMessage(err)}`, 'error')
   } finally {
     resumeSaving.value = false
   }
 }
 
 /* ── Restore session across page reloads ── */
-onMounted(() => {
-  if (sessionStorage.getItem(AUTH_KEY) === '1') {
-    authenticated.value = true
-    loadCerts()
-    loadProjects()
-    loadResume()
-    loadTimeline()
-    loadHobbies()
-  }
+onMounted(async () => {
+  if (await auth.restore()) loadAll()
+  restoring.value = false
 })
 </script>
 
@@ -1223,21 +1224,6 @@ onMounted(() => {
   border-radius: 8px;
   padding: 8px 12px;
 }
-.login-hint {
-  color: var(--muted);
-  font-size: 0.75rem;
-  text-align: center;
-  margin: 0;
-  opacity: 0.7;
-}
-.login-hint code {
-  background: rgba(124, 219, 182, 0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: var(--accent);
-  font-size: 0.8rem;
-}
-
 .field {
   display: flex;
   flex-direction: column;
