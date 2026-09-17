@@ -1,59 +1,83 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Caragay Portfolio — Backend API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel 12 REST API for the portfolio (frontend: `Caragay_Portfolio`).
+PostgreSQL (Supabase) · Sanctum token auth · swappable media storage.
 
-## About Laravel
+## Setup
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+```sh
+composer install
+cp .env.example .env && php artisan key:generate   # then fill in DB_* values
+php artisan migrate
+php artisan storage:link                            # serves uploaded files from /storage
+php artisan admin:create you@example.com --name="Your Name"
+php artisan serve                                   # http://127.0.0.1:8000
+php artisan test                                    # feature tests (in-memory SQLite)
+```
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## API overview
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+| Method | Endpoint | Auth | Purpose |
+|---|---|---|---|
+| POST | `/api/auth/login` | — | Get a bearer token (5 attempts/min) |
+| GET | `/api/auth/me`, POST `/api/auth/logout` | ✔ | Session |
+| GET | `/api/projects`, `/api/projects/{id}` | — | Projects (with `media` gallery) |
+| GET | `/api/certifications`, `/api/hobbies`, `/api/timeline`, `/api/resume` | — | Content |
+| POST/PUT/DELETE | `/api/{projects,certifications,hobbies,timeline}` | ✔ | Manage content |
+| PUT | `/api/resume` | ✔ | `{ pdf_url }` or `{ pdf: MediaItem }` |
+| POST | `/api/media` | ✔ | Upload a file (`file`, `collection`) → MediaItem JSON |
+| POST | `/api/media/embed` | ✔ | YouTube/Vimeo link → MediaItem JSON |
+| DELETE | `/api/media` | ✔ | Delete an upload that was never saved |
 
-## Learning Laravel
+## Media storage (images, videos, PDFs)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+**Files never go in the database.** A *media driver* stores the file; the database keeps a
+small JSON description (a **MediaItem**):
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```json
+{ "id": "…", "type": "image", "provider": "local", "url": "https://…/storage/portfolio-dev/projects/….png",
+  "key": "portfolio-dev/projects/….png", "mime": "image/png", "size": 48213,
+  "width": 1280, "height": 720, "name": "screenshot.png", "alt": "Dashboard" }
+```
 
-## Laravel Sponsors
+| Column | Shape | Used for |
+|---|---|---|
+| `projects.media` | array | gallery: images, videos, YouTube/Vimeo embeds |
+| `certifications.badge` | object | badge image |
+| `hobbies.image` | object | photo |
+| `resume.pdf` | object | uploaded resume |
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Flow: the admin uploads to `POST /api/media` → gets a MediaItem → saves it with the content.
+The `HasMedia` model trait deletes stored files when items are removed or content is deleted.
 
-### Premium Partners
+Key files: `config/media.php`, `app/Services/Media/*`, `app/Models/Concerns/HasMedia.php`,
+`app/Support/MediaRules.php`.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### Switching providers
 
-## Contributing
+```env
+MEDIA_DRIVER=local          # local disk (storage/app/public) — good for development
+MEDIA_DRIVER=cloudinary     # CDN for images/video — recommended for production
+CLOUDINARY_CLOUD_NAME=…
+CLOUDINARY_API_KEY=…
+CLOUDINARY_API_SECRET=…
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Existing items keep working after a switch — each item remembers its own `provider`.
+The Cloudinary driver is written but not yet tested with real credentials: do one test upload
+after adding keys.
 
-## Code of Conduct
+## Environments: dev and production
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Keep the two completely separate so testing never touches the live site:
 
-## Security Vulnerabilities
+| | Development | Production |
+|---|---|---|
+| Git branch | `dev` | `main` (merge `dev` when verified) |
+| Database | its own Supabase project | its own Supabase project |
+| `MEDIA_FOLDER` | `portfolio-dev` | `portfolio-prod` |
+| `MEDIA_DRIVER` | `local` or `cloudinary` | `cloudinary` |
+| `APP_ENV` / `APP_DEBUG` | `local` / `true` | `production` / `false` |
+| `FRONTEND_URLS` | `http://localhost:5173` | your live domain |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Containers (Docker) for both environments are planned for Phase 5.
