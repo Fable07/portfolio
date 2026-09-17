@@ -8,6 +8,7 @@ use App\Http\Controllers\CertificationController;
 use App\Http\Controllers\ResumeController;
 use App\Http\Controllers\HobbyController;
 use App\Http\Controllers\TimelineController;
+use App\Http\Controllers\MediaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,6 +22,7 @@ Route::post('/visitors/increment', [VisitorController::class, 'increment'])->mid
 Route::get('/visitors/count', [VisitorController::class, 'count']);
 
 Route::get('/projects', [ProjectController::class, 'index']);
+Route::get('/projects/{id}', [ProjectController::class, 'show'])->whereNumber('id');
 Route::get('/certifications', [CertificationController::class, 'index']);
 Route::get('/resume', [ResumeController::class, 'show']);
 Route::get('/hobbies', [HobbyController::class, 'index']);
@@ -36,6 +38,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth session
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
+
+    // Media uploads (files go to the media driver; content stores the returned JSON)
+    Route::post('/media', [MediaController::class, 'store'])->middleware('throttle:60,1');
+    Route::post('/media/embed', [MediaController::class, 'embed']);
+    Route::delete('/media', [MediaController::class, 'destroy']);
 
     // Projects
     Route::post('/projects', [ProjectController::class, 'store']);

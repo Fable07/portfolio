@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Resume;
+use App\Support\MediaRules;
 use Illuminate\Http\Request;
 
 class ResumeController extends Controller
@@ -11,24 +12,26 @@ class ResumeController extends Controller
     public function show()
     {
         $resume = Resume::first();
-        return response()->json($resume ?? ['pdf_url' => null]);
+
+        return response()->json($resume ?? ['pdf_url' => null, 'pdf' => null]);
     }
 
-    // PUT /api/resume
+    // PUT /api/resume  { pdf_url } and/or { pdf: MediaItem }
     public function update(Request $request)
     {
-        $request->validate([
-            'pdf_url' => 'required|string',
+        $data = $request->validate([
+            'pdf_url' => ['required_without:pdf', 'nullable', 'string', 'max:255'],
+            ...MediaRules::one('pdf'),
         ]);
 
-        $resume = Resume::first();
-
-        if ($resume) {
-            $resume->update(['pdf_url' => $request->pdf_url]);
-        } else {
-            $resume = Resume::create(['pdf_url' => $request->pdf_url]);
+        // A pasted URL replaces a previously uploaded PDF (its file gets cleaned up)
+        if (! array_key_exists('pdf', $data)) {
+            $data['pdf'] = null;
         }
 
-        return response()->json($resume);
+        $resume = Resume::first();
+        $resume ? $resume->update($data) : $resume = Resume::create($data);
+
+        return response()->json($resume->fresh());
     }
 }

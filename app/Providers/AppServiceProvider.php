@@ -11,7 +11,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // One shared MediaManager per request (it caches the storage drivers it creates)
+        $this->app->singleton(\App\Services\Media\MediaManager::class);
     }
 
     /**

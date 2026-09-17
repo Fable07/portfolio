@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Certification;
+use App\Support\MediaRules;
 use Illuminate\Http\Request;
 
 class CertificationController extends Controller
@@ -18,18 +19,7 @@ class CertificationController extends Controller
     // POST /api/certifications
     public function store(Request $request)
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-        ]);
-
-        $certification = Certification::create($request->only([
-            'title',
-            'issuer',
-            'date',
-            'credential_url',
-            'badge_url',
-            'order',
-        ]));
+        $certification = Certification::create($this->validated($request));
 
         return response()->json($certification, 201);
     }
@@ -38,23 +28,29 @@ class CertificationController extends Controller
     public function update(Request $request, $id)
     {
         $certification = Certification::findOrFail($id);
+        $certification->update($this->validated($request, updating: true));
 
-        $certification->update($request->only([
-            'title',
-            'issuer',
-            'date',
-            'credential_url',
-            'badge_url',
-            'order',
-        ]));
-
-        return response()->json($certification);
+        return response()->json($certification->fresh());
     }
 
-    // DELETE /api/certifications/{id}
+    // DELETE /api/certifications/{id}  (HasMedia deletes the badge file too)
     public function destroy($id)
     {
         Certification::findOrFail($id)->delete();
+
         return response()->json(['message' => 'Deleted successfully']);
+    }
+
+    private function validated(Request $request, bool $updating = false): array
+    {
+        return $request->validate([
+            'title' => [$updating ? 'sometimes' : 'required', 'string', 'max:255'],
+            'issuer' => ['nullable', 'string', 'max:255'],
+            'date' => ['nullable', 'string', 'max:255'],
+            'credential_url' => ['nullable', 'string', 'max:255'],
+            'badge_url' => ['nullable', 'string', 'max:255'],
+            'order' => ['nullable', 'integer'],
+            ...MediaRules::one('badge'),
+        ]);
     }
 }
