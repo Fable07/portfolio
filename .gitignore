@@ -34,3 +34,6 @@ coverage
 
 # Vitest
 __screenshots__/
+
+# Claude Code personal settings
+.claude/settings.local.json
