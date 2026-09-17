@@ -1,32 +1,33 @@
-<!-- CertificationsPanel — public view -->
+<!-- CertificationsView — /certifications — certificate cards with badge, issuer and credential link -->
 <template>
-  <section id="cert" class="certifications-section section">
+  <section id="certifications" class="certifications-section section">
     <div class="container2">
       <h2>Certifications</h2>
 
-      <!-- Loading state -->
-      <div v-if="loading" class="cert-loading">
-        <span class="cert-loading__dot"></span>
-        <span class="cert-loading__dot"></span>
-        <span class="cert-loading__dot"></span>
-      </div>
+      <LoadingDots v-if="store.isLoading" />
 
-      <!-- Empty state -->
-      <p v-else-if="certifications.length === 0" class="cert-empty">No certifications added yet.</p>
+      <StateMessage
+        v-else-if="store.status === 'error'"
+        type="error"
+        message="Couldn't load certifications."
+        retry
+        @retry="store.load({ force: true })"
+      />
 
-      <!-- Certifications grid -->
+      <StateMessage v-else-if="store.items.length === 0" message="No certifications added yet." />
+
       <ul v-else class="certifications__list">
-        <li v-for="cert in certifications" :key="cert.id" class="certification cert-card">
-          <!-- Badge / icon area -->
+        <li v-for="cert in store.items" :key="cert.id" class="certification cert-card">
+          <!-- Badge image, or a medal emoji if there is none / it fails to load -->
           <div class="cert-card__icon-wrap">
             <img
-              v-if="cert.badge_url"
+              v-if="cert.badge_url && !brokenBadges.has(cert.id)"
               :src="cert.badge_url"
-              :alt="cert.issuer + ' badge'"
+              :alt="`${cert.issuer || cert.title} badge`"
               class="cert-card__badge"
-              @error="cert.badge_url = ''"
+              @error="brokenBadges.add(cert.id)"
             />
-            <span v-else class="cert-card__icon-fallback">🏅</span>
+            <span v-else class="cert-card__icon-fallback" aria-hidden="true">🏅</span>
           </div>
 
           <div class="cert-card__body">
@@ -50,64 +51,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { certificationsApi } from '@/api'
+import { onMounted, reactive } from 'vue'
+import { useCertificationsStore } from '@/stores/content'
+import LoadingDots from '@/components/common/LoadingDots.vue'
+import StateMessage from '@/components/common/StateMessage.vue'
 
-const certifications = ref([])
-const loading = ref(true)
+const store = useCertificationsStore()
 
-onMounted(async () => {
-  try {
-    certifications.value = await certificationsApi.list()
-  } catch {
-    certifications.value = []
-  } finally {
-    loading.value = false
-  }
-})
+// IDs whose badge image failed to load. Tracked here instead of blanking
+// cert.badge_url, so the shared store data isn't modified by the view.
+const brokenBadges = reactive(new Set())
+
+onMounted(() => store.load())
 </script>
 
 <style scoped>
-/* ── Loading dots ── */
-.cert-loading {
-  display: flex;
-  gap: 6px;
-  padding: 1rem 0;
-}
-.cert-loading__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
-  animation: certBounce 1.2s ease-in-out infinite both;
-}
-.cert-loading__dot:nth-child(2) {
-  animation-delay: 0.16s;
-}
-.cert-loading__dot:nth-child(3) {
-  animation-delay: 0.32s;
-}
-@keyframes certBounce {
-  0%,
-  80%,
-  100% {
-    transform: scale(0);
-    opacity: 0.4;
-  }
-  40% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-/* ── Empty ── */
-.cert-empty {
-  color: var(--muted);
-  font-size: 0.9rem;
-  padding: 0.5rem 0;
-}
-
-/* ── Card ── */
 .cert-card {
   display: flex;
   align-items: flex-start;

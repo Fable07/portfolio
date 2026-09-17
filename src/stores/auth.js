@@ -22,12 +22,20 @@ function writeToken(value) {
   }
 }
 
+/**
+ * Auth store — the admin's login session.
+ *
+ * token          Sanctum bearer token (kept in sessionStorage: cleared when the tab closes)
+ * user           The signed-in admin, filled once the token is verified with /auth/me
+ * sessionExpired True after the API rejected the token (401) — the login page shows a notice
+ */
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(readToken())
   const user = ref(null)
   const sessionExpired = ref(false)
 
   const isAuthenticated = computed(() => !!token.value)
+  let verifying = null // shared promise so parallel route checks make one /auth/me call
 
   function clearSession() {
     token.value = null
@@ -51,16 +59,25 @@ export const useAuthStore = defineStore('auth', () => {
     writeToken(data.token)
   }
 
-  /** Confirm a stored token is still valid (called on page load). */
-  async function restore() {
+  /**
+   * Is the admin really signed in? Used by the router guard.
+   * Verifies a stored token with the API once, then trusts it for the rest of the visit.
+   * (If the token expires later, the API client's 401 handler clears it.)
+   */
+  async function ensureVerified() {
     if (!token.value) return false
-    try {
-      user.value = await authApi.me()
-      return true
-    } catch {
-      clearSession()
-      return false
-    }
+    if (user.value) return true
+    verifying ??= authApi
+      .me()
+      .then((me) => {
+        user.value = me
+        return true
+      })
+      .catch(() => false) // 401 → client already cleared the session; network error → retry next time
+      .finally(() => {
+        verifying = null
+      })
+    return verifying
   }
 
   async function logout() {
@@ -72,5 +89,5 @@ export const useAuthStore = defineStore('auth', () => {
     clearSession()
   }
 
-  return { token, user, sessionExpired, isAuthenticated, login, restore, logout }
+  return { token, user, sessionExpired, isAuthenticated, login, ensureVerified, logout }
 })

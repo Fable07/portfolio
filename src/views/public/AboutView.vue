@@ -1,3 +1,4 @@
+<!-- AboutView — /about — short introduction text -->
 <template>
   <section id="about" class="about section">
     <div class="container">

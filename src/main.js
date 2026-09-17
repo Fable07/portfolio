@@ -1,16 +1,38 @@
+/**
+ * main.js — app entry point.
+ * Order matters: Pinia (stores) must be installed before the router,
+ * because the router's login guard reads the auth store.
+ */
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import { createRouter, createWebHistory } from 'vue-router'
 import App from './App.vue'
+import router from './router'
+import { initTheme } from './composables/useTheme'
 import './styles/main.css'
 
-const router = createRouter({
-  history: createWebHistory(),
-  routes: [
-    // Admin code is only downloaded when /admin is visited
-    { path: '/admin', component: () => import('./components/admin/AdminPanel.vue') },
-    { path: '/:pathMatch(.*)*', component: App },
-  ],
-})
+initTheme() // apply saved light/dark theme before first paint
 
-createApp(App).use(createPinia()).use(router).mount('#app')
+const app = createApp(App)
+app.use(createPinia())
+app.use(router)
+
+/**
+ * Fade out the #loading-screen from index.html. It is written directly in index.html
+ * (with its own small <style>) so it shows instantly, before any JavaScript downloads.
+ */
+function hideLoadingScreen() {
+  const screen = document.getElementById('loading-screen')
+  if (!screen) return
+  screen.classList.add('hidden')
+  screen.addEventListener('transitionend', () => screen.remove(), { once: true })
+}
+
+// Wait for the first route (and its lazy page code) to resolve, so the loader
+// hands over to a fully rendered page instead of a blank frame.
+router
+  .isReady()
+  .catch((err) => console.error('[router] initial navigation failed', err))
+  .finally(() => {
+    app.mount('#app')
+    hideLoadingScreen()
+  })

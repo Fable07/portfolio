@@ -81,17 +81,7 @@
     </div>
 
     <div id="app"></div>
+    <!-- The loading screen is hidden by hideLoadingScreen() in src/main.js once the app is ready -->
     <script type="module" src="/src/main.js"></script>
-    <script>
-      window.addEventListener('load', () => {
-        setTimeout(() => {
-          const screen = document.getElementById('loading-screen')
-          if (screen) {
-            screen.classList.add('hidden')
-            setTimeout(() => screen.remove(), 500)
-          }
-        }, 1300)
-      })
-    </script>
   </body>
 </html>
