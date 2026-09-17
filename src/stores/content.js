@@ -17,21 +17,30 @@ export const useCertificationsStore = defineCollectionStore('certifications', ce
 export const useHobbiesStore = defineCollectionStore('hobbies', hobbiesApi)
 export const useTimelineStore = defineCollectionStore('timeline', timelineApi)
 
-/** Resume — a single record ({ pdf_url }) rather than a list, so it has its own store. */
+/**
+ * Resume — a single record rather than a list, so it has its own store.
+ *   pdfUrl  URL shown on /resume (a pasted URL, or the uploaded PDF's URL)
+ *   pdf     uploaded PDF media item, or null when a URL was pasted instead
+ */
 export const useResumeStore = defineStore('resume', () => {
   const pdfUrl = ref('')
+  const pdf = ref(null)
   const status = ref('idle')
   const error = ref(null)
 
   const isLoading = computed(() => status.value === 'idle' || status.value === 'loading')
+
+  function apply(data) {
+    pdfUrl.value = data?.pdf_url || data?.pdf?.url || ''
+    pdf.value = data?.pdf ?? null
+  }
 
   async function load({ force = false } = {}) {
     if (status.value === 'ready' && !force) return
     status.value = 'loading'
     error.value = null
     try {
-      const data = await resumeApi.get()
-      pdfUrl.value = data?.pdf_url || ''
+      apply(await resumeApi.get())
       status.value = 'ready'
     } catch (err) {
       error.value = err
@@ -39,10 +48,10 @@ export const useResumeStore = defineStore('resume', () => {
     }
   }
 
-  async function save(url) {
-    const data = await resumeApi.update(url)
-    pdfUrl.value = data?.pdf_url || url
+  /** @param {{ pdf_url?: string, pdf?: object|null }} data */
+  async function save(data) {
+    apply(await resumeApi.update(data))
   }
 
-  return { pdfUrl, status, error, isLoading, load, save }
+  return { pdfUrl, pdf, status, error, isLoading, load, save }
 })

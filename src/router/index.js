@@ -10,18 +10,19 @@ import ProfileView from '@/views/public/ProfileView.vue'
  *
  *   /                    PublicLayout → ProfileView
  *   /projects …          PublicLayout → ProjectsView …
+ *   /projects/:id        PublicLayout → ProjectDetailView
+ *   /terminal            TerminalView (full screen, no layout)
  *   /admin/login         AdminLoginView (no layout)
  *   /admin/projects …    AdminLayout  → AdminProjectsView …  (requires login)
  *
  * Route `meta` fields:
- *   title        → browser tab title (see afterEach below)
+ *   title        → browser tab title (applied in App.vue with @unhead/vue)
+ *   description  → <meta name="description"> for search engines & link previews
  *   requiresAuth → redirect to /admin/login when not signed in
  *   guestOnly    → redirect signed-in admins away (the login page)
  *
  * `() => import(...)` = lazy loading: that page's code downloads only when visited.
  */
-
-const SITE_NAME = 'Jefferson S. Caragay'
 
 const routes = [
   {
@@ -29,36 +30,54 @@ const routes = [
     component: PublicLayout,
     children: [
       // Profile is the landing page, so it's bundled eagerly for the fastest first paint
-      { path: '', name: 'profile', component: ProfileView, meta: { title: 'Portfolio' } },
+      {
+        path: '',
+        name: 'profile',
+        component: ProfileView,
+        meta: {
+          description:
+            'Portfolio of Jefferson S. Caragay — aspiring full-stack developer. Projects, skills, certifications and resume.',
+        },
+      },
       {
         path: 'about',
         name: 'about',
         component: () => import('@/views/public/AboutView.vue'),
-        meta: { title: 'About' },
+        meta: { title: 'About', description: 'About Jefferson S. Caragay.' },
       },
       {
         path: 'certifications',
         name: 'certifications',
         component: () => import('@/views/public/CertificationsView.vue'),
-        meta: { title: 'Certifications' },
+        meta: { title: 'Certifications', description: 'Certifications and courses completed.' },
       },
       {
         path: 'resume',
         name: 'resume',
         component: () => import('@/views/public/ResumeView.vue'),
-        meta: { title: 'Resume' },
+        meta: { title: 'Resume', description: 'Resume, education and work experience.' },
       },
       {
         path: 'projects',
         name: 'projects',
         component: () => import('@/views/public/ProjectsView.vue'),
-        meta: { title: 'Projects' },
+        meta: {
+          title: 'Projects',
+          description: 'Web and mobile projects with screenshots and demos.',
+        },
+      },
+      {
+        path: 'projects/:id(\\d+)',
+        name: 'project-detail',
+        component: () => import('@/views/public/ProjectDetailView.vue'),
+        props: true, // passes :id to the view as a prop
+        meta: { title: 'Project' },
       },
       {
         path: 'hobbies',
         name: 'hobbies',
         component: () => import('@/views/public/HobbiesView.vue'),
-        meta: { title: 'Hobbies' },
+        meta: { title: 'Hobbies', description: 'Hobbies and interests.' },
       },
       {
         path: ':pathMatch(.*)*',
@@ -67,6 +86,13 @@ const routes = [
         meta: { title: 'Page not found' },
       },
     ],
+  },
+
+  {
+    path: '/terminal',
+    name: 'terminal',
+    component: () => import('@/views/TerminalView.vue'),
+    meta: { title: 'Terminal', description: 'Explore the portfolio from a command line.' },
   },
 
   {
@@ -121,9 +147,10 @@ const LEGACY_HASHES = ['about', 'certifications', 'resume', 'projects', 'hobbies
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
-  // New page → start at the top; browser back/forward → restore previous scroll position
   scrollBehavior(to, from, savedPosition) {
-    return savedPosition ?? { top: 0 }
+    if (savedPosition) return savedPosition // browser back/forward → restore position
+    if (to.path === from.path) return false // only the query changed (e.g. ?tag=Vue) → stay put
+    return { top: 0 } // new page → start at the top
   },
 })
 
@@ -149,13 +176,6 @@ router.beforeEach(async (to) => {
     return { name: 'admin-certifications' }
   }
   return true
-})
-
-/* ── After every page change: update the browser tab title ── */
-router.afterEach((to) => {
-  const title = to.meta.title
-  document.title =
-    title && title !== 'Portfolio' ? `${title} · ${SITE_NAME}` : `${SITE_NAME} - Portfolio`
 })
 
 export default router

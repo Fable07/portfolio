@@ -1,4 +1,4 @@
-import { http } from './client'
+import { http, upload } from './client'
 
 /** Standard CRUD endpoints for a Laravel resource controller. */
 function resource(name) {
@@ -18,6 +18,7 @@ export const authApi = {
 
 export const projectsApi = {
   ...resource('projects'),
+  get: (id) => http.get(`/projects/${id}`),
   reorder: (ids) => http.put('/projects/reorder', { order: ids }),
 }
 export const certificationsApi = resource('certifications')
@@ -26,7 +27,30 @@ export const timelineApi = resource('timeline')
 
 export const resumeApi = {
   get: () => http.get('/resume'),
-  update: (pdfUrl) => http.put('/resume', { pdf_url: pdfUrl }),
+  /** @param {{ pdf_url?: string, pdf?: object|null }} data */
+  update: (data) => http.put('/resume', data),
+}
+
+/**
+ * Media — files are uploaded first, then the returned JSON item is saved with the content.
+ * collection: 'projects' | 'certifications' | 'hobbies' | 'resume'
+ */
+export const mediaApi = {
+  upload(file, collection, { onProgress, signal } = {}) {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('collection', collection)
+    return upload('/media', form, { onProgress, signal })
+  },
+  /** YouTube / Vimeo link → embed item (nothing is stored) */
+  embed: (url) => http.post('/media/embed', { url }),
+  /** Delete an uploaded file that was never saved to content */
+  discard: (item) =>
+    http.delete('/media', {
+      provider: item.provider,
+      key: item.key,
+      resource_type: item.resource_type ?? null,
+    }),
 }
 
 export const visitorsApi = {

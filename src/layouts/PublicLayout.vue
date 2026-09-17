@@ -1,10 +1,9 @@
 <!--
   PublicLayout — the frame around every visitor-facing page:
-  scroll bar + sidebar (desktop) / top bar (mobile) + page content + footer.
+  scroll bar + sidebar (desktop) / top bar + drawer (mobile) + page content + footer.
 
-  The current page renders inside <RouterView>; switching pages plays the
-  "section fade" transition. Routes using this layout are children of it in
-  src/router/index.js.
+  The current page renders inside <RouterView>; switching pages plays a short fade.
+  Routes using this layout are its children in src/router/index.js.
 -->
 <template>
   <div>
@@ -18,20 +17,20 @@
     <ScrollProgressBar :progress="progress" />
     <BackToTopButton :visible="showBackToTop" @click="scrollToTop" />
 
-    <div class="flex w-full items-start gap-6 max-nav:block">
+    <div class="flex w-full items-start gap-5 max-nav:block">
       <AppSidebar :visitor-count="visitorCount" />
-      <MobileHeader />
+      <MobileHeader :visitor-count="visitorCount" />
 
       <div class="min-w-0 flex-1 max-nav:pt-16">
-        <main id="main" class="mx-auto max-w-[1200px]" tabindex="-1">
+        <main id="main" class="mx-auto max-w-[1200px] focus:outline-none" tabindex="-1">
           <RouterView v-slot="{ Component, route }">
-            <!-- Page transition: fade/slide up in, fade/slide up out -->
+            <!-- Page transition: fade/slide in, fade out (disabled for reduced-motion users in main.css) -->
             <Transition
               mode="out-in"
-              enter-active-class="transition-all duration-350 ease-[cubic-bezier(0.4,0,0.2,1)]"
-              leave-active-class="transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]"
-              enter-from-class="translate-y-4 opacity-0"
-              leave-to-class="-translate-y-2 opacity-0"
+              enter-active-class="transition-all duration-300 ease-out"
+              leave-active-class="transition-all duration-150 ease-in"
+              enter-from-class="translate-y-3 opacity-0"
+              leave-to-class="opacity-0"
               @after-enter="updateScroll"
             >
               <component :is="Component" :key="route.path" />
@@ -39,11 +38,19 @@
           </RouterView>
         </main>
 
-        <footer class="mt-[26px] text-center text-muted">
-          <p>© {{ currentYear }} Jefferson S. Caragay</p>
+        <footer
+          class="mt-6 mb-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-center text-sm text-muted"
+        >
+          <p class="m-0">© {{ currentYear }} Jefferson S. Caragay</p>
+          <p class="m-0 hidden sm:block">
+            Press <kbd class="kbd">{{ modKeyLabel }} K</kbd> to search or
+            <kbd class="kbd">`</kbd> for terminal mode
+          </p>
         </footer>
       </div>
     </div>
+
+    <AppToast />
   </div>
 </template>
 
@@ -52,8 +59,10 @@ import AppSidebar from '@/components/layout/AppSidebar.vue'
 import MobileHeader from '@/components/layout/MobileHeader.vue'
 import ScrollProgressBar from '@/components/layout/ScrollProgressBar.vue'
 import BackToTopButton from '@/components/layout/BackToTopButton.vue'
+import AppToast from '@/components/common/AppToast.vue'
 import { useScrollProgress } from '@/composables/useScrollProgress'
 import { useVisitorCount } from '@/composables/useVisitorCount'
+import { modKeyLabel } from '@/composables/useCommandPalette'
 
 const { progress, showBackToTop, scrollToTop, update: updateScroll } = useScrollProgress()
 const { count: visitorCount } = useVisitorCount()

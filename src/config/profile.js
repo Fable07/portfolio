@@ -31,9 +31,17 @@ const skill = (name, icon) => ({ name, icon: iconUrl(skillIconFiles, icon) })
 
 export const profile = {
   name: 'Jefferson S. Caragay',
+  // Short handle used as the terminal prompt user, e.g. "jefferson@portfolio:~$"
+  handle: 'jefferson',
   avatar: '/profile.jpg',
+  email: 'caragayjefferson2@gmail.com',
   // Roles cycle in the typewriter effect under your name
   roles: ['Aspiring Fullstack Developer', 'Aspiring DevOps Engineer'],
+  // Shown on /about and by the terminal's `about` command
+  about: [
+    'I build modern web experiences using Vue.js and related technologies.',
+    'I focus on clean, accessible interfaces and performant front-end code.',
+  ],
 }
 
 /** Skill groups — each group renders as a titled row of skill chips. */

@@ -13,9 +13,15 @@
     "lint": "run-s lint:*",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
-    "format": "prettier --write --experimental-cli src/"
+    "format": "prettier --write --experimental-cli src/",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "@unhead/vue": "^3.4.1",
+    "@vueuse/core": "^14.4.0",
+    "@vueuse/integrations": "^14.4.0",
+    "focus-trap": "^8.2.2",
     "pinia": "^3.0.4",
     "vue": "^3.5.26",
     "vue-router": "^5.0.3"
@@ -37,6 +43,7 @@
     "prettier": "3.7.4",
     "tailwindcss": "^4.1.18",
     "vite": "^7.3.1",
-    "vite-plugin-vue-devtools": "^8.0.5"
+    "vite-plugin-vue-devtools": "^8.0.5",
+    "vitest": "^4.1.11"
   }
 }

@@ -5,6 +5,7 @@
  */
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import { createHead } from '@unhead/vue/client'
 import App from './App.vue'
 import router from './router'
 import { initTheme } from './composables/useTheme'
@@ -15,6 +16,18 @@ initTheme() // apply saved light/dark theme before first paint
 const app = createApp(App)
 app.use(createPinia())
 app.use(router)
+// @unhead/vue manages <title> and <meta> tags; useHead() in any component updates them.
+// titleTemplate turns a page title into the full tab title, e.g. "Projects · Jefferson S. Caragay".
+app.use(
+  createHead({
+    init: [
+      {
+        titleTemplate: (title) =>
+          title ? `${title} · Jefferson S. Caragay` : 'Jefferson S. Caragay - Portfolio',
+      },
+    ],
+  }),
+)
 
 /**
  * Fade out the #loading-screen from index.html. It is written directly in index.html

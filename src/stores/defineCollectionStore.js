@@ -72,6 +72,11 @@ export function defineCollectionStore(id, api) {
       items.value = items.value.filter((item) => item.id !== itemId)
     }
 
-    return { items, status, error, isLoading, load, create, update, remove }
+    /** Find one item by id in the loaded list (ids from the URL are strings, so compare loosely). */
+    function findById(itemId) {
+      return items.value.find((item) => String(item.id) === String(itemId)) ?? null
+    }
+
+    return { items, status, error, isLoading, load, create, update, remove, findById }
   })
 }

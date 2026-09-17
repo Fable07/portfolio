@@ -38,7 +38,22 @@
         </thead>
         <tbody>
           <tr v-for="project in store.items" :key="project.id" class="cert-row">
-            <td class="td-title">{{ project.title }}</td>
+            <td class="td-title">
+              <span class="flex items-center gap-2.5">
+                <img
+                  v-if="projectCover(project)"
+                  :src="projectCover(project)"
+                  alt=""
+                  class="h-9 w-14 shrink-0 rounded object-cover"
+                />
+                <span>
+                  {{ project.title }}
+                  <span v-if="mediaCount(project)" class="block text-xs font-normal text-[#9aa4b2]">
+                    {{ mediaCount(project) }} media
+                  </span>
+                </span>
+              </span>
+            </td>
             <td class="td-muted td-desc">{{ project.description || '—' }}</td>
             <td class="td-muted">{{ project.tech_stack || '—' }}</td>
             <td class="td-url">
@@ -140,14 +155,24 @@
           placeholder="https://github.com/..."
         />
       </div>
+      <!-- Gallery: images, short videos and YouTube/Vimeo links. The first image becomes the card cover. -->
+      <MediaUploader
+        v-model="editor.form.media"
+        collection="projects"
+        label="Gallery"
+        multiple
+        allow-embed
+        accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm"
+        hint="Images up to 5 MB · MP4/WebM videos up to 35 MB · first image = cover"
+      />
       <div class="field">
-        <label class="field__label" for="proj-thumb">Thumbnail URL</label>
+        <label class="field__label" for="proj-thumb">Thumbnail URL (optional)</label>
         <input
           id="proj-thumb"
           v-model="editor.form.thumbnail_url"
           type="url"
           class="field__input"
-          placeholder="https://..."
+          placeholder="Only used when the gallery has no images"
         />
       </div>
 
@@ -176,8 +201,11 @@ import { useProjectsStore } from '@/stores/content'
 import { useCrudEditor, requiredFields } from '@/composables/useCrudEditor'
 import AdminModal from '@/components/admin/AdminModal.vue'
 import ConfirmDeleteDialog from '@/components/admin/ConfirmDeleteDialog.vue'
+import MediaUploader from '@/components/admin/MediaUploader.vue'
+import { mediaList, projectCover } from '@/utils/media'
 
 const store = useProjectsStore()
+const mediaCount = (project) => mediaList(project.media).length
 
 const {
   editor,
@@ -199,6 +227,7 @@ const {
     project_url: '',
     github_url: '',
     thumbnail_url: '',
+    media: [], // gallery — list of media items (JSON), see utils/media.js
   },
   validate: (form) => requiredFields(form, { title: 'Title' }),
 })

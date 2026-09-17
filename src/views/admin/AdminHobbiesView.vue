@@ -36,7 +36,15 @@
         </thead>
         <tbody>
           <tr v-for="hobby in store.items" :key="hobby.id" class="cert-row">
-            <td class="td-muted">{{ hobby.icon || '—' }}</td>
+            <td class="td-muted">
+              <img
+                v-if="hobby.image?.url"
+                :src="hobby.image.url"
+                alt=""
+                class="h-9 w-12 rounded object-cover"
+              />
+              <template v-else>{{ hobby.icon || '—' }}</template>
+            </td>
             <td class="td-title">{{ hobby.name }}</td>
             <td class="td-muted td-desc">{{ hobby.description || '—' }}</td>
             <td class="td-actions">
@@ -96,6 +104,12 @@
           placeholder="Brief description of this hobby..."
         ></textarea>
       </div>
+      <MediaUploader
+        v-model="editor.form.image"
+        collection="hobbies"
+        label="Photo (optional)"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+      />
 
       <template #actions>
         <button type="button" class="btn-ghost" @click="closeEditor">Cancel</button>
@@ -122,6 +136,7 @@ import { useHobbiesStore } from '@/stores/content'
 import { useCrudEditor, requiredFields } from '@/composables/useCrudEditor'
 import AdminModal from '@/components/admin/AdminModal.vue'
 import ConfirmDeleteDialog from '@/components/admin/ConfirmDeleteDialog.vue'
+import MediaUploader from '@/components/admin/MediaUploader.vue'
 
 const store = useHobbiesStore()
 
@@ -138,7 +153,7 @@ const {
   confirmDelete,
 } = useCrudEditor(store, {
   label: 'Hobby',
-  emptyForm: { name: '', icon: '', description: '' },
+  emptyForm: { name: '', icon: '', description: '', image: null }, // image: media item JSON
   validate: (form) => requiredFields(form, { name: 'Name' }),
   nameOf: (hobby) => hobby.name,
 })

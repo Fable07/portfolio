@@ -37,15 +37,19 @@ export function initTheme() {
 export function useTheme() {
   const isDarkMode = computed(() => theme.value === 'dark')
 
-  function toggleTheme() {
-    const next = isDarkMode.value ? 'light' : 'dark'
-    applyTheme(next)
+  /** Set and remember a theme: setTheme('light') */
+  function setTheme(value) {
+    applyTheme(value === 'light' ? 'light' : 'dark')
     try {
-      localStorage.setItem(STORAGE_KEY, next)
+      localStorage.setItem(STORAGE_KEY, theme.value)
     } catch {
       // not persisted — still switches for this visit
     }
   }
 
-  return { theme, isDarkMode, toggleTheme }
+  function toggleTheme() {
+    setTheme(isDarkMode.value ? 'light' : 'dark')
+  }
+
+  return { theme, isDarkMode, setTheme, toggleTheme }
 }

@@ -53,7 +53,12 @@
               <span v-else class="td-muted">—</span>
             </td>
             <td class="td-url">
-              <span v-if="cert.badge_url" class="url-pill">✔ Set</span>
+              <img
+                v-if="cert.badge?.url || cert.badge_url"
+                :src="cert.badge?.url || cert.badge_url"
+                alt=""
+                class="size-8 rounded object-contain"
+              />
               <span v-else class="td-muted">—</span>
             </td>
             <td class="td-actions">
@@ -123,8 +128,14 @@
           placeholder="https://..."
         />
       </div>
-      <div class="field">
-        <label class="field__label" for="cert-badge">Badge / Logo URL</label>
+      <MediaUploader
+        v-model="editor.form.badge"
+        collection="certifications"
+        label="Badge / certificate image"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+      />
+      <div v-if="!editor.form.badge" class="field">
+        <label class="field__label" for="cert-badge">…or badge image URL</label>
         <input
           id="cert-badge"
           v-model="editor.form.badge_url"
@@ -159,6 +170,7 @@ import { useCertificationsStore } from '@/stores/content'
 import { useCrudEditor, requiredFields } from '@/composables/useCrudEditor'
 import AdminModal from '@/components/admin/AdminModal.vue'
 import ConfirmDeleteDialog from '@/components/admin/ConfirmDeleteDialog.vue'
+import MediaUploader from '@/components/admin/MediaUploader.vue'
 
 const store = useCertificationsStore()
 
@@ -175,7 +187,14 @@ const {
   confirmDelete,
 } = useCrudEditor(store, {
   label: 'Certification',
-  emptyForm: { title: '', issuer: '', date: '', credential_url: '', badge_url: '' },
+  emptyForm: {
+    title: '',
+    issuer: '',
+    date: '',
+    credential_url: '',
+    badge_url: '',
+    badge: null, // uploaded badge image (media item JSON) — takes priority over badge_url
+  },
   validate: (form) => requiredFields(form, { title: 'Title' }),
 })
 

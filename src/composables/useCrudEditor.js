@@ -1,5 +1,7 @@
 import { reactive, computed } from 'vue'
 import { useToastStore } from '@/stores/toast'
+import { provideMediaSession } from '@/composables/useMediaSession'
+import { cloneMedia } from '@/utils/media'
 
 /**
  * useCrudEditor — shared "Add / Edit / Delete" logic for admin list pages.
@@ -24,6 +26,8 @@ import { useToastStore } from '@/stores/toast'
  */
 export function useCrudEditor(store, { label, emptyForm, validate = () => '', nameOf }) {
   const toast = useToastStore()
+  // Tracks files uploaded inside this form, so cancelled uploads get deleted (see useMediaSession)
+  const mediaSession = provideMediaSession()
 
   /* ── Add / Edit modal ── */
   const editor = reactive({
@@ -32,12 +36,12 @@ export function useCrudEditor(store, { label, emptyForm, validate = () => '', na
     saving: false,
     error: '',
     editingId: null,
-    form: { ...emptyForm },
+    form: cloneMedia(emptyForm),
   })
 
   function openCreate() {
     Object.assign(editor, { open: true, isEdit: false, saving: false, error: '', editingId: null })
-    editor.form = { ...emptyForm }
+    editor.form = cloneMedia(emptyForm)
   }
 
   function openEdit(item) {
@@ -48,14 +52,17 @@ export function useCrudEditor(store, { label, emptyForm, validate = () => '', na
       error: '',
       editingId: item.id,
     })
-    // Copy only the form's fields; null from the API becomes the default ('' for text inputs)
-    editor.form = Object.fromEntries(
-      Object.keys(emptyForm).map((key) => [key, item[key] ?? emptyForm[key]]),
+    // Copy only the form's fields; null from the API becomes the default ('' for text inputs).
+    // Deep copy, so editing media (e.g. alt text) never changes the list behind the modal.
+    editor.form = cloneMedia(
+      Object.fromEntries(Object.keys(emptyForm).map((key) => [key, item[key] ?? emptyForm[key]])),
     )
   }
 
+  /** Cancel: close the form and delete any files uploaded in it */
   function closeEditor() {
     editor.open = false
+    mediaSession.discardAll()
   }
 
   async function save() {
@@ -66,6 +73,7 @@ export function useCrudEditor(store, { label, emptyForm, validate = () => '', na
     try {
       if (editor.isEdit) await store.update(editor.editingId, editor.form)
       else await store.create(editor.form)
+      mediaSession.commit() // uploads are now part of saved content
       editor.open = false
       toast.success(`${label} saved`)
     } catch (err) {
