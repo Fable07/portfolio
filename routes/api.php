@@ -9,6 +9,7 @@ use App\Http\Controllers\ResumeController;
 use App\Http\Controllers\HobbyController;
 use App\Http\Controllers\TimelineController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\ProfileController;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,6 +28,7 @@ Route::get('/certifications', [CertificationController::class, 'index']);
 Route::get('/resume', [ResumeController::class, 'show']);
 Route::get('/hobbies', [HobbyController::class, 'index']);
 Route::get('/timeline', [TimelineController::class, 'index']);
+Route::get('/profile', [ProfileController::class, 'show']);
 
 /*
 |--------------------------------------------------------------------------
@@ -38,6 +40,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth session
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
+
+    // Profile (single record)
+    Route::put('/profile', [ProfileController::class, 'update']);
 
     // Media uploads (files go to the media driver; content stores the returned JSON)
     Route::post('/media', [MediaController::class, 'store'])->middleware('throttle:60,1');
@@ -52,6 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Certifications
     Route::post('/certifications', [CertificationController::class, 'store']);
+    Route::put('/certifications/reorder', [CertificationController::class, 'reorder']);
     Route::put('/certifications/{id}', [CertificationController::class, 'update']);
     Route::delete('/certifications/{id}', [CertificationController::class, 'destroy']);
 
@@ -60,11 +66,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Hobbies
     Route::post('/hobbies', [HobbyController::class, 'store']);
+    Route::put('/hobbies/reorder', [HobbyController::class, 'reorder']);
     Route::put('/hobbies/{id}', [HobbyController::class, 'update']);
     Route::delete('/hobbies/{id}', [HobbyController::class, 'destroy']);
 
     // Timeline
     Route::post('/timeline', [TimelineController::class, 'store']);
+    Route::put('/timeline/reorder', [TimelineController::class, 'reorder']);
     Route::put('/timeline/{id}', [TimelineController::class, 'update']);
     Route::delete('/timeline/{id}', [TimelineController::class, 'destroy']);
 });

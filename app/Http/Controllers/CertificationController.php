@@ -8,11 +8,15 @@ use Illuminate\Http\Request;
 
 class CertificationController extends Controller
 {
-    // GET /api/certifications
-    public function index()
+    // GET /api/certifications  (?drafts=1 as admin includes unpublished)
+    public function index(Request $request)
     {
         return response()->json(
-            Certification::orderBy('order')->orderBy('created_at', 'desc')->get()
+            Certification::query()
+                ->when(! $this->wantsDrafts($request), fn ($query) => $query->where('is_published', true))
+                ->orderBy('order')
+                ->orderBy('created_at', 'desc')
+                ->get()
         );
     }
 
@@ -21,10 +25,10 @@ class CertificationController extends Controller
     {
         $certification = Certification::create($this->validated($request));
 
-        return response()->json($certification, 201);
+        return response()->json($certification->fresh(), 201);
     }
 
-    // PUT /api/certifications/{id}
+    // PUT /api/certifications/{id}  (partial updates allowed)
     public function update(Request $request, $id)
     {
         $certification = Certification::findOrFail($id);
@@ -41,6 +45,12 @@ class CertificationController extends Controller
         return response()->json(['message' => 'Deleted successfully']);
     }
 
+    // PUT /api/certifications/reorder
+    public function reorder(Request $request)
+    {
+        return $this->saveOrder($request, Certification::class);
+    }
+
     private function validated(Request $request, bool $updating = false): array
     {
         return $request->validate([
@@ -50,6 +60,7 @@ class CertificationController extends Controller
             'credential_url' => ['nullable', 'string', 'max:255'],
             'badge_url' => ['nullable', 'string', 'max:255'],
             'order' => ['nullable', 'integer'],
+            'is_published' => ['sometimes', 'boolean'],
             ...MediaRules::one('badge'),
         ]);
     }

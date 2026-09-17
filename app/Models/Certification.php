@@ -17,10 +17,12 @@ class Certification extends Model
         'badge_url',
         'badge',
         'order',
+        'is_published',
     ];
 
     protected $casts = [
         'badge' => 'array', // single MediaItem (uploaded badge image) or null
+        'is_published' => 'boolean', // false = draft, hidden from the public site
     ];
 
     protected array $mediaColumns = ['badge'];

@@ -53,6 +53,12 @@ class HobbyController extends Controller
         return response()->json(['message' => 'Hobby deleted successfully']);
     }
 
+    /** PUT /api/hobbies/reorder */
+    public function reorder(Request $request)
+    {
+        return $this->saveOrder($request, Hobby::class);
+    }
+
     private function validated(Request $request, bool $updating = false): array
     {
         return $request->validate([

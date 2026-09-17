@@ -19,10 +19,14 @@ class Project extends Model
         'thumbnail_url',
         'media',
         'order',
+        'is_published',
+        'is_featured',
     ];
 
     protected $casts = [
         'media' => 'array', // gallery: list of MediaItem JSON objects
+        'is_published' => 'boolean', // false = draft, hidden from the public site
+        'is_featured' => 'boolean', // shown in "Featured projects" on the home page
     ];
 
     /** JSON columns whose files HasMedia cleans up */

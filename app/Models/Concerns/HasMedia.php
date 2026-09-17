@@ -15,6 +15,8 @@ use App\Services\Media\MediaManager;
  *  • updated → files removed from a column are deleted from storage
  *  • deleted → all of the record's files are deleted from storage
  *
+ * If media sits deeper inside a column (e.g. icons inside skill groups), override
+ * mediaIn($column, $value) to return the flat list of media items for that column.
  * (Remember to also cast those columns to 'array'.)
  */
 trait HasMedia
@@ -26,7 +28,10 @@ trait HasMedia
             foreach ($model->mediaColumns as $column) {
                 if ($model->wasChanged($column)) {
                     // getOriginal() still holds the pre-update value inside the "updated" event
-                    array_push($removed, ...MediaItem::removed($model->getOriginal($column), $model->{$column}));
+                    array_push($removed, ...MediaItem::removed(
+                        $model->mediaIn($column, $model->getOriginal($column)),
+                        $model->mediaIn($column, $model->{$column}),
+                    ));
                 }
             }
             app(MediaManager::class)->deleteMany($removed);
@@ -35,9 +40,15 @@ trait HasMedia
         static::deleted(function (self $model) {
             $all = [];
             foreach ($model->mediaColumns as $column) {
-                array_push($all, ...MediaItem::list($model->{$column}));
+                array_push($all, ...$model->mediaIn($column, $model->{$column}));
             }
             app(MediaManager::class)->deleteMany($all);
         });
+    }
+
+    /** Media items stored in a column (default: the column itself is an item or a list of items). */
+    public function mediaIn(string $column, mixed $value): array
+    {
+        return MediaItem::list($value);
     }
 }

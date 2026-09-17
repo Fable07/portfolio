@@ -8,18 +8,26 @@ use Illuminate\Http\Request;
 
 class ProjectController extends Controller
 {
-    // GET /api/projects
-    public function index()
+    // GET /api/projects  (?drafts=1 as admin includes unpublished projects)
+    public function index(Request $request)
     {
         return response()->json(
-            Project::orderBy('order')->orderBy('created_at', 'desc')->get()
+            Project::query()
+                ->when(! $this->wantsDrafts($request), fn ($query) => $query->where('is_published', true))
+                ->orderBy('order')
+                ->orderBy('created_at', 'desc')
+                ->get()
         );
     }
 
-    // GET /api/projects/{id}
-    public function show($id)
+    // GET /api/projects/{id}  (drafts are 404 for visitors)
+    public function show(Request $request, $id)
     {
-        return response()->json(Project::findOrFail($id));
+        return response()->json(
+            Project::query()
+                ->when(! auth('sanctum')->check(), fn ($query) => $query->where('is_published', true))
+                ->findOrFail($id)
+        );
     }
 
     // POST /api/projects
@@ -27,10 +35,10 @@ class ProjectController extends Controller
     {
         $project = Project::create($this->validated($request));
 
-        return response()->json($project, 201);
+        return response()->json($project->fresh(), 201);
     }
 
-    // PUT /api/projects/{id}
+    // PUT /api/projects/{id}  (partial updates allowed, e.g. { is_featured: true })
     public function update(Request $request, $id)
     {
         $project = Project::findOrFail($id);
@@ -50,13 +58,7 @@ class ProjectController extends Controller
     // PUT /api/projects/reorder  { order: [id, id, …] }
     public function reorder(Request $request)
     {
-        $request->validate(['order' => 'required|array', 'order.*' => 'integer']);
-
-        foreach ($request->input('order') as $index => $id) {
-            Project::where('id', $id)->update(['order' => $index]);
-        }
-
-        return response()->json(['message' => 'Reordered successfully']);
+        return $this->saveOrder($request, Project::class);
     }
 
     private function validated(Request $request, bool $updating = false): array
@@ -69,6 +71,8 @@ class ProjectController extends Controller
             'github_url' => ['nullable', 'string', 'max:255'],
             'thumbnail_url' => ['nullable', 'string', 'max:255'],
             'order' => ['nullable', 'integer'],
+            'is_published' => ['sometimes', 'boolean'],
+            'is_featured' => ['sometimes', 'boolean'],
             ...MediaRules::many('media', config('media.max_gallery_items')),
         ]);
     }

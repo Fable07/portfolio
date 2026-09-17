@@ -53,6 +53,7 @@ return [
         'certifications' => ['image'],
         'hobbies' => ['image'],
         'resume' => ['document'],
+        'profile' => ['image'], // avatar and custom skill icons
     ],
 
     // Max items in a project gallery
