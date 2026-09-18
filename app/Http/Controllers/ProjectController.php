@@ -73,6 +73,18 @@ class ProjectController extends Controller
             'order' => ['nullable', 'integer'],
             'is_published' => ['sometimes', 'boolean'],
             'is_featured' => ['sometimes', 'boolean'],
+            // Case study — every field optional; see the add_case_study migration for the shape
+            'case_study' => ['nullable', 'array'],
+            'case_study.role' => ['nullable', 'string', 'max:120'],
+            'case_study.period' => ['nullable', 'string', 'max:120'],
+            'case_study.problem' => ['nullable', 'string', 'max:5000'],
+            'case_study.approach' => ['nullable', 'string', 'max:5000'],
+            'case_study.outcome' => ['nullable', 'string', 'max:5000'],
+            'case_study.highlights' => ['nullable', 'array', 'list', 'max:10'],
+            'case_study.highlights.*' => ['required', 'string', 'max:200'],
+            'case_study.sections' => ['nullable', 'array', 'list', 'max:10'],
+            'case_study.sections.*.heading' => ['required', 'string', 'max:120'],
+            'case_study.sections.*.body' => ['required', 'string', 'max:5000'],
             ...MediaRules::many('media', config('media.max_gallery_items')),
         ]);
     }

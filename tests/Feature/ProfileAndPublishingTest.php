@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
-/** Phase 3: editable profile, drafts/featured, and reordering. */
+/** Phase 3–4: editable profile, drafts/featured, reordering, and project case studies. */
 class ProfileAndPublishingTest extends TestCase
 {
     use RefreshDatabase;
@@ -22,7 +22,7 @@ class ProfileAndPublishingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Storage::fake('public', ['url' => 'http://localhost/storage']);
+        Storage::fake('public', ['url' => 'http://localhost/storage']); // absolute URLs, like the real disk
         config(['media.driver' => 'local', 'media.folder' => 'portfolio-test']);
     }
 
@@ -157,5 +157,41 @@ class ProfileAndPublishingTest extends TestCase
         $this->getJson('/api/certifications')->assertJsonPath('0.title', 'Two');
 
         $this->putJson('/api/timeline/reorder', ['order' => ['x']])->assertUnprocessable();
+    }
+
+    /* ── Case study (Phase 4) ────────────────────────────────── */
+
+    public function test_project_case_study_is_saved_and_public(): void
+    {
+        $this->actingAsAdmin();
+        $caseStudy = [
+            'role' => 'Full-stack developer',
+            'period' => 'Jan – Mar 2026',
+            'problem' => 'Managing content meant editing code.',
+            'approach' => 'Built an admin panel backed by an API.',
+            'outcome' => 'Content updates take seconds.',
+            'highlights' => ['Media stored outside the database', 'Drafts before publishing'],
+            'sections' => [['heading' => 'Architecture', 'body' => 'Vue frontend, Laravel API.']],
+        ];
+
+        $id = $this->postJson('/api/projects', ['title' => 'Portfolio', 'case_study' => $caseStudy])
+            ->assertCreated()
+            ->json('id');
+
+        $this->getJson("/api/projects/{$id}")
+            ->assertOk()
+            ->assertJsonPath('case_study.role', 'Full-stack developer')
+            ->assertJsonPath('case_study.highlights.1', 'Drafts before publishing')
+            ->assertJsonPath('case_study.sections.0.heading', 'Architecture');
+    }
+
+    public function test_case_study_sections_require_heading_and_body(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->postJson('/api/projects', [
+            'title' => 'X',
+            'case_study' => ['sections' => [['heading' => 'Only heading']]],
+        ])->assertUnprocessable()->assertJsonValidationErrors('case_study.sections.0.body');
     }
 }

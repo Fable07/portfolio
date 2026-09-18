@@ -18,6 +18,7 @@ class Project extends Model
         'github_url',
         'thumbnail_url',
         'media',
+        'case_study',
         'order',
         'is_published',
         'is_featured',
@@ -25,6 +26,7 @@ class Project extends Model
 
     protected $casts = [
         'media' => 'array', // gallery: list of MediaItem JSON objects
+        'case_study' => 'array', // optional write-up: problem / approach / outcome (see migration)
         'is_published' => 'boolean', // false = draft, hidden from the public site
         'is_featured' => 'boolean', // shown in "Featured projects" on the home page
     ];
