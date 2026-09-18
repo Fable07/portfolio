@@ -88,7 +88,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import FormField from '@/components/admin/FormField.vue'
+import FormField from '@/components/common/FormField.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()

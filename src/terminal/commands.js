@@ -30,7 +30,7 @@ import {
  * `ctx` is everything a command may use, passed in by TerminalView (so commands
  * can be unit tested with a fake ctx):
  *   profile, skillGroups, socialLinks, pages,
- *   data.{projects, certifications, hobbies, timeline, resumeUrl, skillGraph}()  → Promise
+ *   data.{projects, certifications, hobbies, timeline, resumeUrl, skillGraph, journey}()  → Promise
  *   navigate(to), openUrl(url), theme.{current(), set(name)}, history(), clear(), exit()
  *
  * To add a command: push an object into `commands` below — help and Tab completion
@@ -296,6 +296,46 @@ export const commands = [
     },
   },
   {
+    name: 'journey',
+    aliases: ['history-of-me'],
+    summary: 'Everything in order: studies, work, certifications, projects',
+    usage: '[education|work|certification|project]',
+    complete: () => ['education', 'work', 'certification', 'project'],
+    async run({ args }, { data }) {
+      const journey = await data.journey()
+      const kind = args[0]?.toLowerCase().replace(/s$/, '')
+      const years = journey.years
+        .map((group) => ({
+          ...group,
+          items: kind ? group.items.filter((item) => item.kind === kind) : group.items,
+        }))
+        .filter((group) => group.items.length)
+
+      if (!years.length)
+        return [line(muted(kind ? `Nothing of kind "${kind}" yet.` : 'Timeline is empty.'))]
+
+      return [
+        ...years.flatMap((group) => [
+          line(bold(String(group.year))),
+          ...group.items.map((item) =>
+            line(
+              text(` ${item.icon} `),
+              item.to
+                ? routeLink(item.title, item.to)
+                : item.href
+                  ? link(item.title, item.href)
+                  : text(item.title),
+              muted(item.subtitle ? `  ${item.subtitle}` : ''),
+              muted(item.dateLabel ? `  (${item.dateLabel})` : ''),
+            ),
+          ),
+          blank(),
+        ]),
+        line(muted('Full page: '), routeLink('/journey', { name: 'journey' })),
+      ]
+    },
+  },
+  {
     name: 'hobbies',
     summary: 'What I do for fun',
     async run(_, { data }) {
@@ -326,13 +366,19 @@ export const commands = [
     name: 'contact',
     aliases: ['socials', 'social'],
     summary: 'Email and social links',
-    run: (_, { socialLinks }) =>
-      columns(
+    run: (_, { socialLinks }) => [
+      line(
+        muted('Message me straight from the site: '),
+        routeLink('/contact', { name: 'contact' }),
+      ),
+      blank(),
+      ...columns(
         socialLinks.map((social) => [
           social.label.toLowerCase(),
           link(social.href.replace(/^mailto:/, ''), social.href),
         ]),
       ),
+    ],
   },
   {
     name: 'open',

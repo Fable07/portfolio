@@ -105,6 +105,7 @@ import {
 import { useProfileStore } from '@/stores/profile'
 import { commandNames, commands, findCommand, runCommand, welcomeLines } from '@/terminal/commands'
 import { complete, tokenize } from '@/terminal/parser'
+import { buildJourney } from '@/utils/journey'
 import { buildSkillGraph } from '@/utils/skillGraph'
 import { line as outputLine, muted, plain } from '@/terminal/output'
 
@@ -190,6 +191,15 @@ const ctx = {
     certifications: () => listFrom(stores.certifications),
     hobbies: () => listFrom(stores.hobbies),
     timeline: () => listFrom(stores.timeline),
+    // Merged timeline (same data as the /journey page)
+    journey: async () => {
+      const [timeline, certifications, projects] = await Promise.all([
+        listFrom(stores.timeline),
+        listFrom(stores.certifications),
+        listFrom(stores.projects),
+      ])
+      return buildJourney({ timeline, certifications, projects })
+    },
     // Skill → projects/certifications links (same data as the /skills page)
     skillGraph: async () => {
       const [projects, certifications] = await Promise.all([

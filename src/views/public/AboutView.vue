@@ -28,6 +28,11 @@
               >🏅 Certifications</RouterLink
             >
           </li>
+          <li>
+            <RouterLink :to="{ name: 'contact' }" class="text-accent no-underline hover:underline"
+              >✉️ Send me a message</RouterLink
+            >
+          </li>
           <li v-if="profile.email">
             <a :href="`mailto:${profile.email}`" class="text-accent no-underline hover:underline"
               >✉️ {{ profile.email }}</a

@@ -101,7 +101,7 @@
             </p>
             <p class="m-0 text-xs">For anything else: Architecture, Challenges, What's next…</p>
           </div>
-          <button type="button" class="btn-secondary !px-3 !py-1.5 !text-xs" @click="addSection">
+          <button type="button" class="btn-secondary px-3! py-1.5! text-xs!" @click="addSection">
             ＋ Add section
           </button>
         </div>
@@ -128,14 +128,14 @@
               >
               <input
                 v-model="section.heading"
-                class="form-input !py-1.5 !text-sm"
+                class="form-input py-1.5! text-sm!"
                 placeholder="Section heading"
                 :aria-label="`Heading of section ${index + 1}`"
                 :aria-invalid="!!fieldError(`case_study.sections.${index}.heading`)"
               />
               <button
                 type="button"
-                class="btn-ghost !px-2 hover:!text-red-400"
+                class="btn-ghost px-2! hover:text-red-400!"
                 :aria-label="`Remove section ${index + 1}`"
                 @click="sections.splice(index, 1)"
               >
@@ -146,7 +146,7 @@
               v-model="section.body"
               rows="3"
               maxlength="5000"
-              class="form-input mt-2 resize-y !text-sm"
+              class="form-input mt-2 resize-y text-sm!"
               placeholder="Section text…"
               :aria-label="`Text of section ${index + 1}`"
               :aria-invalid="!!fieldError(`case_study.sections.${index}.body`)"
@@ -164,7 +164,7 @@
 <script setup>
 import { computed } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
-import FormField from './FormField.vue'
+import FormField from '../common/FormField.vue'
 import StringListEditor from './StringListEditor.vue'
 
 const QUESTIONS = [

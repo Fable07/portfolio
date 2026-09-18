@@ -38,9 +38,17 @@
 
     <!-- ── Timeline ── -->
     <section aria-labelledby="timeline-heading">
-      <h2 id="timeline-heading" class="m-0 mb-6 text-xl font-bold text-heading">
-        Education & experience
-      </h2>
+      <div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <h2 id="timeline-heading" class="m-0 text-xl font-bold text-heading">
+          Education & experience
+        </h2>
+        <RouterLink
+          :to="{ name: 'journey' }"
+          class="text-sm font-semibold text-accent no-underline hover:underline"
+        >
+          See the full journey →
+        </RouterLink>
+      </div>
 
       <div v-if="timeline.isLoading" class="space-y-4" aria-busy="true">
         <SkeletonBlock v-for="n in 2" :key="n" class="h-28 w-full" />

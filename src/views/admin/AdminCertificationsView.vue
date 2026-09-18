@@ -217,7 +217,7 @@
 import { computed, onMounted, ref } from 'vue'
 import AdminModal from '@/components/admin/AdminModal.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
-import FormField from '@/components/admin/FormField.vue'
+import FormField from '@/components/common/FormField.vue'
 import MediaUploader from '@/components/admin/MediaUploader.vue'
 import SortableList from '@/components/admin/SortableList.vue'
 import ToggleSwitch from '@/components/admin/ToggleSwitch.vue'

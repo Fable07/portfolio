@@ -65,6 +65,18 @@ export const mediaApi = {
     }),
 }
 
+/**
+ * Contact messages. send() is public; the rest need an admin token.
+ * list() returns { data: [...], unread: n }.
+ */
+export const messagesApi = {
+  send: (message) => http.post('/messages', message),
+  list: () => http.get('/messages'),
+  setRead: (id, read) => http.put(`/messages/${id}`, { read }),
+  remove: (id, { keepalive = false } = {}) =>
+    http.delete(`/messages/${id}`, undefined, { keepalive }),
+}
+
 export const visitorsApi = {
   increment: (visitorId) => http.post('/visitors/increment', { visitor_id: visitorId }),
 }

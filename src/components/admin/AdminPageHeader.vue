@@ -23,7 +23,7 @@
         <input
           v-model="search"
           type="search"
-          class="form-input !pl-8"
+          class="form-input pl-8!"
           :placeholder="searchPlaceholder"
         />
       </label>

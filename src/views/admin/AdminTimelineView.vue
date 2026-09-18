@@ -224,7 +224,7 @@
 import { computed, onMounted, ref } from 'vue'
 import AdminModal from '@/components/admin/AdminModal.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
-import FormField from '@/components/admin/FormField.vue'
+import FormField from '@/components/common/FormField.vue'
 import SortableList from '@/components/admin/SortableList.vue'
 import SkeletonBlock from '@/components/common/SkeletonBlock.vue'
 import StateMessage from '@/components/common/StateMessage.vue'

@@ -28,7 +28,7 @@
       <div v-if="!disabled" class="flex shrink-0 flex-col items-center">
         <button
           type="button"
-          class="btn-ghost !p-0.5 !text-xs"
+          class="btn-ghost p-0.5! text-xs!"
           :disabled="index === 0"
           :aria-label="`Move ${labelOf(item)} up`"
           @click="move(index, -1)"
@@ -44,7 +44,7 @@
         >
         <button
           type="button"
-          class="btn-ghost !p-0.5 !text-xs"
+          class="btn-ghost p-0.5! text-xs!"
           :disabled="index === local.length - 1"
           :aria-label="`Move ${labelOf(item)} down`"
           @click="move(index, 1)"

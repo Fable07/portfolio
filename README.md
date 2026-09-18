@@ -23,21 +23,24 @@ The API base URL comes from `VITE_API_URL` (see `.env.example`).
 
 ## Features
 
-| Feature               | Where                        | Notes                                                                                                                                                                               |
-| --------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Command palette**   | `Ctrl/⌘ + K` or `/`          | Fuzzy search pages, projects, certifications, actions (theme, copy email, resume) and links. Remembers recent commands.                                                             |
-| **Terminal mode**     | `/terminal` or press `` ` `` | `help`, `whoami`, `projects`, `project <name>`, `skills`, `experience`, `contact`, `open <page>`, `theme`, `exit`… Tab completes, ↑/↓ history.                                      |
-| **Skill graph**       | `/skills?skill=Vue`          | Pick a skill to see the projects and certifications that use it, drawn as a small graph. Matches spellings ("Vue JS" ↔ a project tagged "vue").                                     |
-| **Case studies**      | `/projects/:id`              | Optional write-up per project: role, period, problem, approach, outcome, highlights and custom sections, with jump links.                                                           |
-| **Project pages**     | `/projects/:id`              | Gallery of images, videos and YouTube/Vimeo, full-screen viewer (← → Esc).                                                                                                          |
-| **Shareable filters** | `/projects?tag=Vue`          | Filter lives in the URL.                                                                                                                                                            |
-| **Media uploads**     | Admin forms                  | Project gallery, certification badge, hobby photo, resume PDF. Files go to the backend media driver; only JSON is stored.                                                           |
-| **Editable profile**  | `/admin/profile`             | Name, availability badge, roles, about, photo, skill groups (built-in or uploaded icons) and social links. Until saved once, the site uses the defaults in `src/config/profile.js`. |
-| **Drafts & featured** | admin lists                  | Draft items are hidden from visitors; featured projects appear on the home page.                                                                                                    |
-| **Ordering**          | admin lists                  | Drag the ⠿ handle (or use ▲▼) to set the public order.                                                                                                                              |
-| **Undo delete**       | admin lists                  | Deleting shows "Undo" for a few seconds before it becomes permanent.                                                                                                                |
-| **Accessibility**     | everywhere                   | Skip link, focus-trapped dialogs/drawer, keyboard navigation, reduced-motion support.                                                                                               |
-| **SEO**               | `@unhead/vue`                | Per-page `<title>` and description from route `meta` (projects set their own).                                                                                                      |
+| Feature               | Where                        | Notes                                                                                                                                                                                      |
+| --------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Command palette**   | `Ctrl/⌘ + K` or `/`          | Fuzzy search pages, projects, certifications, actions (theme, copy email, resume) and links. Remembers recent commands.                                                                    |
+| **Terminal mode**     | `/terminal` or press `` ` `` | `help`, `whoami`, `projects`, `project <name>`, `skills`, `skill <name>`, `journey`, `experience`, `contact`, `open <page>`, `theme`, `exit`… Tab completes, ↑/↓ history.                  |
+| **Skill graph**       | `/skills?skill=Vue`          | Pick a skill to see the projects and certifications that use it, drawn as a small graph. Matches spellings ("Vue JS" ↔ a project tagged "vue").                                            |
+| **Case studies**      | `/projects/:id`              | Optional write-up per project: role, period, problem, approach, outcome, highlights and custom sections, with jump links.                                                                  |
+| **Journey timeline**  | `/journey?type=work`         | Education, work, certifications and projects merged into one timeline, newest first, grouped by year and filterable by kind (the filter lives in the URL). Also `journey` in the terminal. |
+| **Contact form**      | `/contact`                   | Sends a message to the admin inbox (no mail server). Honeypot field + API rate limit block bots.                                                                                           |
+| **Admin inbox**       | `/admin/messages`            | Unread badge in the sidebar, click a message to read it, mark read/unread, reply via `mailto:`, undo-able delete.                                                                          |
+| **Project pages**     | `/projects/:id`              | Gallery of images, videos and YouTube/Vimeo, full-screen viewer (← → Esc).                                                                                                                 |
+| **Shareable filters** | `/projects?tag=Vue`          | Filter lives in the URL.                                                                                                                                                                   |
+| **Media uploads**     | Admin forms                  | Project gallery, certification badge, hobby photo, resume PDF. Files go to the backend media driver; only JSON is stored.                                                                  |
+| **Editable profile**  | `/admin/profile`             | Name, availability badge, roles, about, photo, skill groups (built-in or uploaded icons) and social links. Until saved once, the site uses the defaults in `src/config/profile.js`.        |
+| **Drafts & featured** | admin lists                  | Draft items are hidden from visitors; featured projects appear on the home page.                                                                                                           |
+| **Ordering**          | admin lists                  | Drag the ⠿ handle (or use ▲▼) to set the public order.                                                                                                                                     |
+| **Undo delete**       | admin lists                  | Deleting shows "Undo" for a few seconds before it becomes permanent.                                                                                                                       |
+| **Accessibility**     | everywhere                   | Skip link, focus-trapped dialogs/drawer, keyboard navigation, reduced-motion support.                                                                                                      |
+| **SEO**               | `@unhead/vue`                | Per-page `<title>` and description from route `meta` (projects set their own).                                                                                                             |
 
 ## Admin access
 
@@ -114,6 +117,20 @@ src/
   children in `src/router/index.js` → add it to `adminNav` in `src/config/navigation.js`.
 - **A field to an admin form:** add it to that page's `emptyForm`, render a `<FormField>` with
   `:error="fieldError('field')"`, and allow it in the Laravel controller's validation.
+
+### Where the data comes from
+
+Most pages read a Pinia store that wraps one API resource. Two pages build their view from
+several resources instead, in a pure helper that is unit tested:
+
+- `src/utils/journey.js` merges timeline entries, certifications and projects into one dated
+  list (`buildJourney`). Dates are free text in the admin ("2019", "June 2024", "Present"), so
+  `parseLooseDate`/`dateRank` sort them and undated items are grouped last.
+- `src/utils/skillGraph.js` links skills to the projects and certifications that use them.
+
+The inbox has its own store (`src/stores/messages.js`) because the API returns an unread count
+alongside the list; it exposes the same `detach`/`restore`/`removeRemote` trio as the content
+stores so "Undo delete" works there too.
 
 ### Admin notes
 

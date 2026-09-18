@@ -50,6 +50,12 @@
                 >
                   <span aria-hidden="true">{{ item.icon }}</span
                   >{{ item.label }}
+                  <!-- Unread counter (only items with a `badge` key in adminNav) -->
+                  <span
+                    v-if="badgeCount(item)"
+                    class="ml-auto rounded-full bg-accent px-1.5 text-xs font-bold text-[#0b1018]"
+                    >{{ badgeCount(item) }}</span
+                  >
                 </a>
               </RouterLink>
             </li>
@@ -97,6 +103,7 @@
               :active-class="item.exact ? '' : 'bg-accent/15! text-accent!'"
             >
               {{ item.icon }} {{ item.label }}
+              <span v-if="badgeCount(item)" class="text-accent">({{ badgeCount(item) }})</span>
             </RouterLink>
           </nav>
         </header>
@@ -112,15 +119,24 @@
 </template>
 
 <script setup>
-import { watch } from 'vue'
+import { onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppToast from '@/components/common/AppToast.vue'
 import { adminNav } from '@/config/navigation'
 import { useAuthStore } from '@/stores/auth'
+import { useMessagesStore } from '@/stores/messages'
 
 const auth = useAuthStore()
+const messages = useMessagesStore()
 const router = useRouter()
 const route = useRoute()
+
+// adminNav items may carry `badge: '<field on the messages store>'` — currently
+// only the Inbox, which shows how many messages are unread.
+const badgeCount = (item) => (item.badge ? messages[item.badge] : 0)
+
+// Loaded once for the whole admin so the badge is right on every page
+onMounted(() => messages.load())
 
 let signingOut = false
 

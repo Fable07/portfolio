@@ -29,7 +29,9 @@ const PAGE_ICONS = {
   certifications: '🏅',
   resume: '📄',
   projects: '🚀',
+  journey: '🗺️',
   hobbies: '🎯',
+  contact: '✉️',
 }
 
 export function usePaletteCommands() {

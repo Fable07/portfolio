@@ -31,7 +31,7 @@
       <input
         v-model="query"
         type="search"
-        class="form-input mb-2 !py-1.5 !text-sm"
+        class="form-input mb-2 py-1.5! text-sm!"
         placeholder="Search icons…"
         aria-label="Search icons"
       />
@@ -57,7 +57,7 @@
       <p v-if="!filtered.length" class="m-0 py-3 text-center text-xs">No icons match.</p>
 
       <div class="mt-2 flex flex-wrap items-center gap-2 border-t border-line pt-2">
-        <label class="btn-ghost cursor-pointer border border-line !py-1.5 !text-xs">
+        <label class="btn-ghost cursor-pointer border border-line py-1.5! text-xs!">
           {{ uploading ? 'Uploading…' : '⬆ Upload custom' }}
           <input
             type="file"
@@ -70,7 +70,7 @@
         <button
           v-if="icon || media"
           type="button"
-          class="btn-ghost !py-1.5 !text-xs"
+          class="btn-ghost py-1.5! text-xs!"
           @click="clear"
         >
           Remove icon

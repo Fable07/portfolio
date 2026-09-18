@@ -33,7 +33,7 @@
       <div class="flex shrink-0 gap-0.5">
         <button
           type="button"
-          class="btn-ghost !px-2"
+          class="btn-ghost px-2!"
           :disabled="index === 0"
           :aria-label="`Move ${itemLabel} ${index + 1} up`"
           @click="move(index, -1)"
@@ -42,7 +42,7 @@
         </button>
         <button
           type="button"
-          class="btn-ghost !px-2"
+          class="btn-ghost px-2!"
           :disabled="index === model.length - 1"
           :aria-label="`Move ${itemLabel} ${index + 1} down`"
           @click="move(index, 1)"
@@ -51,7 +51,7 @@
         </button>
         <button
           type="button"
-          class="btn-ghost !px-2 hover:text-red-400!"
+          class="btn-ghost px-2! hover:text-red-400!"
           :aria-label="`Remove ${itemLabel} ${index + 1}`"
           @click="remove(index)"
         >
@@ -70,7 +70,7 @@
     <button
       v-if="model.length < max"
       type="button"
-      class="btn-ghost justify-self-start border !border-dashed !border-line"
+      class="btn-ghost justify-self-start border border-dashed! border-line!"
       @click="model = [...model, '']"
     >
       ＋ Add {{ itemLabel.toLowerCase() }}

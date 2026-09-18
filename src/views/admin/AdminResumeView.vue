@@ -67,7 +67,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
-import FormField from '@/components/admin/FormField.vue'
+import FormField from '@/components/common/FormField.vue'
 import MediaUploader from '@/components/admin/MediaUploader.vue'
 import SkeletonBlock from '@/components/common/SkeletonBlock.vue'
 import { apiErrorMessage } from '@/composables/useCrudEditor'

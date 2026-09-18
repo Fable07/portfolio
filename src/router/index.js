@@ -53,6 +53,21 @@ const routes = [
         meta: { title: 'Skills', description: 'Skills and the projects where they were used.' },
       },
       {
+        path: 'journey',
+        name: 'journey',
+        component: () => import('@/views/public/JourneyView.vue'),
+        meta: {
+          title: 'Journey',
+          description: 'Education, work, certifications and projects on one timeline.',
+        },
+      },
+      {
+        path: 'contact',
+        name: 'contact',
+        component: () => import('@/views/public/ContactView.vue'),
+        meta: { title: 'Contact', description: 'Send Jefferson S. Caragay a message.' },
+      },
+      {
         path: 'certifications',
         name: 'certifications',
         component: () => import('@/views/public/CertificationsView.vue'),
@@ -148,6 +163,12 @@ const routes = [
         name: 'admin-timeline',
         component: () => import('@/views/admin/AdminTimelineView.vue'),
         meta: { title: 'Manage timeline' },
+      },
+      {
+        path: 'messages',
+        name: 'admin-messages',
+        component: () => import('@/views/admin/AdminMessagesView.vue'),
+        meta: { title: 'Inbox' },
       },
       {
         path: 'hobbies',

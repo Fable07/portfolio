@@ -185,14 +185,14 @@
           <div class="mb-3 flex flex-wrap items-center gap-2">
             <input
               v-model="group.title"
-              class="form-input min-w-0 flex-1 !font-semibold"
+              class="form-input min-w-0 flex-1 font-semibold!"
               placeholder="Group title, e.g. Frameworks"
               :aria-label="`Title of skill group ${groupIndex + 1}`"
               :aria-invalid="!!errorFor(`skill_groups.${groupIndex}.title`)"
             />
             <button
               type="button"
-              class="btn-ghost !px-2"
+              class="btn-ghost px-2!"
               :disabled="groupIndex === 0"
               :aria-label="`Move group ${group.title || groupIndex + 1} up`"
               @click="moveIn(form.skill_groups, groupIndex, -1)"
@@ -201,7 +201,7 @@
             </button>
             <button
               type="button"
-              class="btn-ghost !px-2"
+              class="btn-ghost px-2!"
               :disabled="groupIndex === form.skill_groups.length - 1"
               :aria-label="`Move group ${group.title || groupIndex + 1} down`"
               @click="moveIn(form.skill_groups, groupIndex, 1)"
@@ -210,7 +210,7 @@
             </button>
             <button
               type="button"
-              class="btn-ghost !px-2 hover:text-red-400!"
+              class="btn-ghost px-2! hover:text-red-400!"
               :aria-label="`Remove group ${group.title || groupIndex + 1}`"
               @click="removeGroup(groupIndex)"
             >
@@ -248,14 +248,14 @@
               />
               <input
                 v-model="skill.name"
-                class="form-input min-w-0 flex-1 !py-1.5 !text-sm"
+                class="form-input min-w-0 flex-1 py-1.5! text-sm!"
                 placeholder="Skill name"
                 :aria-label="`Skill ${skillIndex + 1} in ${group.title || 'group'}`"
                 :aria-invalid="!!errorFor(`skill_groups.${groupIndex}.skills.${skillIndex}.name`)"
               />
               <button
                 type="button"
-                class="btn-ghost !px-2 hover:text-red-400!"
+                class="btn-ghost px-2! hover:text-red-400!"
                 :aria-label="`Remove ${skill.name || 'skill'}`"
                 @click="removeSkill(group, skillIndex)"
               >
@@ -265,7 +265,7 @@
           </VueDraggable>
           <button
             type="button"
-            class="btn-ghost mt-2 border !border-dashed !border-line"
+            class="btn-ghost mt-2 border border-dashed! border-line!"
             @click="group.skills.push({ name: '', icon: null, icon_media: null })"
           >
             ＋ Add skill
@@ -314,21 +314,21 @@
             <IconPicker v-model:icon="link.icon" set="social" :label="link.label" />
             <input
               v-model="link.label"
-              class="form-input !py-1.5 !text-sm"
+              class="form-input py-1.5! text-sm!"
               placeholder="Label, e.g. GitHub"
               :aria-label="`Label of link ${index + 1}`"
               :aria-invalid="!!errorFor(`social_links.${index}.label`)"
             />
             <input
               v-model.trim="link.href"
-              class="form-input !py-1.5 !text-sm"
+              class="form-input py-1.5! text-sm!"
               placeholder="https://github.com/you"
               :aria-label="`URL of link ${index + 1}`"
               :aria-invalid="!!linkError(link, index)"
             />
             <button
               type="button"
-              class="btn-ghost !px-2 hover:text-red-400!"
+              class="btn-ghost px-2! hover:text-red-400!"
               :aria-label="`Remove link ${link.label || index + 1}`"
               @click="form.social_links.splice(index, 1)"
             >
@@ -352,7 +352,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
-import FormField from '@/components/admin/FormField.vue'
+import FormField from '@/components/common/FormField.vue'
 import IconPicker from '@/components/admin/IconPicker.vue'
 import MediaUploader from '@/components/admin/MediaUploader.vue'
 import StringListEditor from '@/components/admin/StringListEditor.vue'
