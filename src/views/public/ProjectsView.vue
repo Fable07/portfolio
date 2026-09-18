@@ -55,85 +55,13 @@
 
       <StateMessage v-if="filtered.length === 0" :message="`No projects use “${activeTag}” yet.`" />
 
-      <ul v-else class="m-0 grid list-none gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
-        <li
-          v-for="project in filtered"
-          :key="project.id"
-          class="group relative flex flex-col overflow-hidden rounded-xl border border-line bg-surface transition-all duration-200 hover:-translate-y-1 hover:border-accent/50 hover:shadow-[0_12px_30px_rgba(0,0,0,0.25)]"
-        >
-          <!-- Cover -->
-          <div class="relative aspect-video overflow-hidden bg-accent/5">
-            <img
-              v-if="projectCover(project) && !brokenCovers.has(project.id)"
-              :src="projectCover(project)"
-              :alt="''"
-              class="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-              loading="lazy"
-              @error="brokenCovers.add(project.id)"
-            />
-            <div
-              v-else
-              class="flex size-full items-center justify-center font-mono text-3xl text-accent/40"
-              aria-hidden="true"
-            >
-              &lt;/&gt;
-            </div>
-            <span
-              v-if="mediaBadge(project)"
-              class="absolute right-2 bottom-2 rounded-md bg-black/65 px-2 py-0.5 text-xs text-white"
-            >
-              {{ mediaBadge(project) }}
-            </span>
-          </div>
-
-          <div class="flex flex-1 flex-col p-4">
-            <h2 class="m-0 text-lg font-semibold text-heading">
-              <!-- The title link covers the whole card (after: pseudo-element), so the card is clickable -->
-              <RouterLink
-                :to="{ name: 'project-detail', params: { id: project.id } }"
-                class="text-inherit no-underline after:absolute after:inset-0 after:content-['']"
-              >
-                {{ project.title }}
-              </RouterLink>
-            </h2>
-            <p v-if="project.description" class="m-0 mt-2 line-clamp-3 text-sm leading-relaxed">
-              {{ project.description }}
-            </p>
-
-            <!-- Tags sit above the card link (relative z-10) so they stay clickable -->
-            <div v-if="project.tech_stack" class="relative z-10 mt-3 flex flex-wrap gap-1.5">
-              <button
-                v-for="tag in splitTags(project.tech_stack)"
-                :key="tag"
-                type="button"
-                class="chip cursor-pointer"
-                :class="{ 'ring-1 ring-accent': activeTag === tag }"
-                :title="`Show ${tag} projects`"
-                @click="setTag(tag)"
-              >
-                {{ tag }}
-              </button>
-            </div>
-
-            <div class="relative z-10 mt-auto flex flex-wrap gap-3 pt-4 text-sm font-semibold">
-              <a
-                v-if="project.project_url"
-                :href="project.project_url"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-accent no-underline hover:underline"
-                >Live ↗</a
-              >
-              <a
-                v-if="project.github_url"
-                :href="project.github_url"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-muted no-underline hover:text-heading hover:underline"
-                >GitHub ↗</a
-              >
-            </div>
-          </div>
+      <ul
+        v-else
+        class="m-0 grid list-none gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3"
+        data-testid="project-grid"
+      >
+        <li v-for="project in filtered" :key="project.id">
+          <ProjectCard :project="project" :active-tag="activeTag" @tag="setTag" />
         </li>
       </ul>
     </template>
@@ -141,18 +69,17 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useProjectsStore } from '@/stores/content'
-import { countByType, projectCover } from '@/utils/media'
 import PageSection from '@/components/common/PageSection.vue'
+import ProjectCard from '@/components/common/ProjectCard.vue'
 import SkeletonBlock from '@/components/common/SkeletonBlock.vue'
 import StateMessage from '@/components/common/StateMessage.vue'
 
 const store = useProjectsStore()
 const route = useRoute()
 const router = useRouter()
-const brokenCovers = reactive(new Set()) // project IDs whose cover image failed to load
 
 onMounted(() => store.load())
 
@@ -181,11 +108,4 @@ const filtered = computed(() =>
     ? store.items
     : store.items.filter((project) => splitTags(project.tech_stack).includes(activeTag.value)),
 )
-
-/** "📷 3 · ▶ 1" — how much media a project has */
-function mediaBadge(project) {
-  const counts = countByType(project.media)
-  const videos = counts.video + counts.embed
-  return [counts.image && `📷 ${counts.image}`, videos && `▶ ${videos}`].filter(Boolean).join(' · ')
-}
 </script>

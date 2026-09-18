@@ -23,8 +23,10 @@
 /* ── 2. Design tokens ──────────────────────────────────────────────────────
    Colours switch with <html data-theme="dark|light">. The @theme block maps them to
    Tailwind colour names, so you write bg-card, text-heading, border-line, text-accent/80…
-   "inline" makes utilities read the variable live, so theme switching needs no rebuild. */
-:root {
+   "inline" makes utilities read the variable live, so theme switching needs no rebuild.
+   Any element can force a theme for its subtree: <div data-theme="dark"> (the admin does). */
+:root,
+[data-theme='dark'] {
   --bg: #361111; /* page background */
   --card: #0f1724; /* main card surface */
   --surface: rgba(255, 255, 255, 0.03); /* inner panels inside cards */
@@ -233,4 +235,93 @@
   font-family: var(--font-mono);
   font-size: 0.7rem;
   line-height: 1.6;
+}
+
+/* Destructive action: <button class="btn-danger">Delete</button> */
+@utility btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.1rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: transform 0.2s;
+  &:hover {
+    transform: translateY(-1px);
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+/* Low-emphasis button (icon buttons, Cancel): <button class="btn-ghost">Cancel</button> */
+@utility btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid transparent;
+  border-radius: 0.65rem;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  &:hover {
+    background: var(--surface);
+    color: var(--heading);
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+/* Text inputs, textareas and selects: <input class="form-input" /> */
+@utility form-input {
+  display: block;
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  background: var(--surface);
+  color: var(--heading);
+  font: inherit;
+  font-size: 0.9rem;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+  &::placeholder {
+    color: color-mix(in oklab, var(--muted) 70%, transparent);
+  }
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent);
+  }
+  &[aria-invalid='true'] {
+    border-color: #f87171;
+  }
+}
+
+/* The admin is dark-only: keep the page background dark behind it */
+@layer base {
+  html:has([data-admin]) body {
+    background: #0b1018;
+  }
 }

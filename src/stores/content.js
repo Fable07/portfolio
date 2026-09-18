@@ -4,7 +4,11 @@ import { certificationsApi, hobbiesApi, projectsApi, resumeApi, timelineApi } fr
 import { defineCollectionStore } from './defineCollectionStore'
 
 /**
- * Content stores — the portfolio data shown on public pages and edited in the admin.
+ * Content stores — the portfolio data.
+ *
+ * Public stores (useProjectsStore…) hold only PUBLISHED items for visitor pages.
+ * Admin stores (useAdminProjectsStore…) also include drafts; whenever the admin changes
+ * something, the matching public store is marked stale so visitor pages refetch.
  *
  * Usage in a component:
  *   const projects = useProjectsStore()
@@ -16,6 +20,25 @@ export const useProjectsStore = defineCollectionStore('projects', projectsApi)
 export const useCertificationsStore = defineCollectionStore('certifications', certificationsApi)
 export const useHobbiesStore = defineCollectionStore('hobbies', hobbiesApi)
 export const useTimelineStore = defineCollectionStore('timeline', timelineApi)
+
+export const useAdminProjectsStore = defineCollectionStore('admin-projects', projectsApi, {
+  drafts: true,
+  onChange: () => useProjectsStore().markStale(),
+})
+export const useAdminCertificationsStore = defineCollectionStore(
+  'admin-certifications',
+  certificationsApi,
+  {
+    drafts: true,
+    onChange: () => useCertificationsStore().markStale(),
+  },
+)
+export const useAdminHobbiesStore = defineCollectionStore('admin-hobbies', hobbiesApi, {
+  onChange: () => useHobbiesStore().markStale(),
+})
+export const useAdminTimelineStore = defineCollectionStore('admin-timeline', timelineApi, {
+  onChange: () => useTimelineStore().markStale(),
+})
 
 /**
  * Resume — a single record rather than a list, so it has its own store.

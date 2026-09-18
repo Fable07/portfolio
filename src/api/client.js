@@ -22,8 +22,15 @@ export function configureAuth({ tokenGetter, unauthorizedHandler }) {
   onUnauthorized = unauthorizedHandler
 }
 
-export async function request(method, path, body) {
-  const options = { method, headers: { Accept: 'application/json' } }
+/**
+ * @param {string} method
+ * @param {string} path
+ * @param {object} [body]
+ * @param {{ keepalive?: boolean }} [extra]  keepalive lets the request finish even if the
+ *        page is closing (used to complete an "Undo"-able delete on tab close)
+ */
+export async function request(method, path, body, { keepalive = false } = {}) {
+  const options = { method, keepalive, headers: { Accept: 'application/json' } }
   const token = getToken()
   if (token) options.headers.Authorization = `Bearer ${token}`
   if (body !== undefined) {
@@ -98,5 +105,5 @@ export const http = {
   get: (path) => request('GET', path),
   post: (path, body) => request('POST', path, body ?? {}),
   put: (path, body) => request('PUT', path, body ?? {}),
-  delete: (path, body) => request('DELETE', path, body),
+  delete: (path, body, extra) => request('DELETE', path, body, extra),
 }

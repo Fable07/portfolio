@@ -94,7 +94,6 @@ import { useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
 import TerminalLine from '@/components/terminal/TerminalLine.vue'
 import { publicNav } from '@/config/navigation'
-import { profile, skillGroups, socialLinks } from '@/config/profile'
 import { useTheme } from '@/composables/useTheme'
 import {
   useCertificationsStore,
@@ -103,6 +102,7 @@ import {
   useResumeStore,
   useTimelineStore,
 } from '@/stores/content'
+import { useProfileStore } from '@/stores/profile'
 import { commandNames, commands, findCommand, runCommand, welcomeLines } from '@/terminal/commands'
 import { complete, tokenize } from '@/terminal/parser'
 import { line as outputLine, muted, plain } from '@/terminal/output'
@@ -129,9 +129,12 @@ const stores = {
   hobbies: useHobbiesStore(),
   timeline: useTimelineStore(),
   resume: useResumeStore(),
+  profile: useProfileStore(),
 }
 
-const prompt = { user: profile.handle, host: 'portfolio' }
+// Profile content comes from the store (edited in /admin/profile), so it's read live
+const profile = computed(() => stores.profile.profile)
+const prompt = computed(() => ({ user: profile.value.handle, host: 'portfolio' }))
 
 /** Coloured "jefferson@portfolio:~$ " label (small render-function component). */
 const PromptLabel = (props) =>
@@ -166,9 +169,16 @@ async function listFrom(store) {
 }
 
 const ctx = {
-  profile,
-  skillGroups,
-  socialLinks,
+  // getters: commands always see the latest profile data
+  get profile() {
+    return profile.value
+  },
+  get skillGroups() {
+    return profile.value.skillGroups
+  },
+  get socialLinks() {
+    return profile.value.socialLinks
+  },
   pages: publicNav.map((page) => ({
     name: page.name,
     label: page.label,
@@ -305,7 +315,8 @@ function rememberHistory(command) {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await stores.profile.load()
   print(welcomeLines(ctx))
   focusInput()
 })

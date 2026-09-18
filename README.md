@@ -23,15 +23,19 @@ The API base URL comes from `VITE_API_URL` (see `.env.example`).
 
 ## Features
 
-| Feature | Where | Notes |
-|---|---|---|
-| **Command palette** | `Ctrl/⌘ + K` or `/` | Fuzzy search pages, projects, certifications, actions (theme, copy email, resume) and links. Remembers recent commands. |
-| **Terminal mode** | `/terminal` or press `` ` `` | `help`, `whoami`, `projects`, `project <name>`, `skills`, `experience`, `contact`, `open <page>`, `theme`, `exit`… Tab completes, ↑/↓ history. |
-| **Project pages** | `/projects/:id` | Gallery of images, videos and YouTube/Vimeo, full-screen viewer (← → Esc). |
-| **Shareable filters** | `/projects?tag=Vue` | Filter lives in the URL. |
-| **Media uploads** | Admin forms | Project gallery, certification badge, hobby photo, resume PDF. Files go to the backend media driver; only JSON is stored. |
-| **Accessibility** | everywhere | Skip link, focus-trapped dialogs/drawer, keyboard navigation, reduced-motion support. |
-| **SEO** | `@unhead/vue` | Per-page `<title>` and description from route `meta` (projects set their own). |
+| Feature               | Where                        | Notes                                                                                                                                                                               |
+| --------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Command palette**   | `Ctrl/⌘ + K` or `/`          | Fuzzy search pages, projects, certifications, actions (theme, copy email, resume) and links. Remembers recent commands.                                                             |
+| **Terminal mode**     | `/terminal` or press `` ` `` | `help`, `whoami`, `projects`, `project <name>`, `skills`, `experience`, `contact`, `open <page>`, `theme`, `exit`… Tab completes, ↑/↓ history.                                      |
+| **Project pages**     | `/projects/:id`              | Gallery of images, videos and YouTube/Vimeo, full-screen viewer (← → Esc).                                                                                                          |
+| **Shareable filters** | `/projects?tag=Vue`          | Filter lives in the URL.                                                                                                                                                            |
+| **Media uploads**     | Admin forms                  | Project gallery, certification badge, hobby photo, resume PDF. Files go to the backend media driver; only JSON is stored.                                                           |
+| **Editable profile**  | `/admin/profile`             | Name, availability badge, roles, about, photo, skill groups (built-in or uploaded icons) and social links. Until saved once, the site uses the defaults in `src/config/profile.js`. |
+| **Drafts & featured** | admin lists                  | Draft items are hidden from visitors; featured projects appear on the home page.                                                                                                    |
+| **Ordering**          | admin lists                  | Drag the ⠿ handle (or use ▲▼) to set the public order.                                                                                                                              |
+| **Undo delete**       | admin lists                  | Deleting shows "Undo" for a few seconds before it becomes permanent.                                                                                                                |
+| **Accessibility**     | everywhere                   | Skip link, focus-trapped dialogs/drawer, keyboard navigation, reduced-motion support.                                                                                               |
+| **SEO**               | `@unhead/vue`                | Per-page `<title>` and description from route `meta` (projects set their own).                                                                                                      |
 
 ## Admin access
 
@@ -51,36 +55,44 @@ src/
 ├── router/index.js      URL → layout → view map, login guard, scroll behaviour
 ├── layouts/
 │   ├── PublicLayout.vue   Sidebar / mobile drawer / footer frame for visitor pages
-│   └── AdminLayout.vue    Header + tabs + toast frame for /admin pages
+│   └── AdminLayout.vue    Sidebar (desktop) / tab strip (mobile) frame for /admin pages
 ├── views/               One component per page (route)
 │   ├── public/            ProfileView, ProjectsView, ProjectDetailView, ResumeView, …
-│   ├── admin/             AdminLoginView, AdminProjectsView, AdminResumeView, …
+│   ├── admin/             AdminDashboardView, AdminProfileView, AdminProjectsView, …
 │   └── TerminalView.vue   Terminal mode screen
 ├── components/
 │   ├── layout/            AppSidebar, MobileHeader (drawer), NavLinks, SearchButton, ThemeToggle…
 │   ├── common/            PageSection, SkeletonBlock, StateMessage, AppToast, AppBreadcrumbs, MediaLightbox
 │   ├── palette/           CommandPalette
 │   ├── terminal/          TerminalLine (renders one output line)
-│   └── admin/             AdminModal, ConfirmDeleteDialog, MediaUploader
+│   └── admin/             AdminModal, AdminPageHeader, FormField, ToggleSwitch, SortableList,
+│                          MediaUploader, IconPicker, StringListEditor
 ├── composables/         Reusable logic (useX functions)
 │   ├── useCommandPalette  Palette open state + global keyboard shortcuts
 │   ├── usePaletteCommands Everything the palette can search/run
 │   ├── useMediaSession    Deletes uploads from cancelled admin forms
-│   ├── useCrudEditor      Add / edit / delete flow shared by admin pages
+│   ├── useCrudEditor      Add / edit form flow shared by admin pages (+ field errors, dirty state)
+│   ├── useUndoableDelete  Delete with an Undo window
+│   ├── useUnsavedChanges  Dirty tracking + "leave without saving?" guard
 │   ├── useTheme           Light/dark theme, saved per visitor
 │   ├── useTypewriter · useScrollProgress · useVisitorCount
 ├── terminal/            Terminal mode logic (framework-free, unit tested)
 │   ├── commands.js        Command registry — add a command here
 │   ├── parser.js          Tokenising, flags, Tab completion
 │   └── output.js          Output line/part helpers
-├── utils/               Pure helpers (unit tested): fuzzy.js (search), media.js (media items)
-├── stores/              Pinia stores: auth, content (projects, certifications…), toast
+├── utils/               Pure helpers (unit tested): fuzzy.js (search), media.js (media items),
+│                        icons.js (built-in icon sets), validation.js (form checks)
+├── stores/              Pinia stores
+│   ├── auth.js            Admin session
+│   ├── content.js         Public stores (published only) + admin stores (include drafts)
+│   ├── profile.js         Owner profile: saved data merged over config defaults
+│   └── toast.js           Status messages (with optional action button)
 ├── api/                 HTTP layer — client.js (fetch + upload with progress), index.js (endpoints)
 ├── config/              navigation.js (menus), profile.js (name, about, skills, socials)
 ├── assets/icons/        Bundled images (skills, socials, theme icons)
 └── styles/
-    ├── main.css           Tailwind setup, design tokens, btn-primary/btn-secondary/chip/kbd utilities
-    └── admin.css          Admin-only styles (scoped under .admin-shell)
+    └── main.css           Tailwind setup, design tokens, and the btn-primary / btn-secondary /
+                           btn-danger / btn-ghost / form-input / chip / kbd utilities
 ```
 
 ### How to add…
@@ -92,6 +104,17 @@ src/
 - **A terminal command:** push an object into `commands` in `src/terminal/commands.js`
   (`name`, `summary`, `run`). `help` and Tab completion pick it up.
 - **A palette action:** add it to `actions` in `src/composables/usePaletteCommands.js`.
+- **An admin page:** create `src/views/admin/…View.vue` → add the route under the `/admin`
+  children in `src/router/index.js` → add it to `adminNav` in `src/config/navigation.js`.
+- **A field to an admin form:** add it to that page's `emptyForm`, render a `<FormField>` with
+  `:error="fieldError('field')"`, and allow it in the Laravel controller's validation.
+
+### Admin notes
+
+- The admin is always dark (`data-theme="dark"`), independent of the visitor theme.
+- Public pages read only published content; admin pages load drafts too. After an admin change,
+  the matching public store is marked stale so visitor pages refetch.
+- Files uploaded in a form that you cancel are deleted automatically (`useMediaSession`).
 
 ### Styling
 

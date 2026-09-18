@@ -1,12 +1,19 @@
 import { http, upload } from './client'
 
-/** Standard CRUD endpoints for a Laravel resource controller. */
+/**
+ * Standard endpoints for a Laravel resource controller.
+ *   list({ drafts: true })   admin only — include unpublished items
+ *   update(id, partial)      partial updates are fine, e.g. { is_featured: true }
+ *   reorder([3, 1, 2])       save display order
+ */
 function resource(name) {
   return {
-    list: () => http.get(`/${name}`),
+    list: ({ drafts = false } = {}) => http.get(`/${name}${drafts ? '?drafts=1' : ''}`),
     create: (data) => http.post(`/${name}`, data),
     update: (id, data) => http.put(`/${name}/${id}`, data),
-    remove: (id) => http.delete(`/${name}/${id}`),
+    remove: (id, { keepalive = false } = {}) =>
+      http.delete(`/${name}/${id}`, undefined, { keepalive }),
+    reorder: (ids) => http.put(`/${name}/reorder`, { order: ids }),
   }
 }
 
@@ -19,7 +26,12 @@ export const authApi = {
 export const projectsApi = {
   ...resource('projects'),
   get: (id) => http.get(`/projects/${id}`),
-  reorder: (ids) => http.put('/projects/reorder', { order: ids }),
+}
+
+/** Site owner's profile (single record). get() returns {} until saved once. */
+export const profileApi = {
+  get: () => http.get('/profile'),
+  update: (data) => http.put('/profile', data),
 }
 export const certificationsApi = resource('certifications')
 export const hobbiesApi = resource('hobbies')

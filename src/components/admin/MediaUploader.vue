@@ -15,16 +15,17 @@
       removing an already-saved file deletes it when the content is saved.
 -->
 <template>
-  <div class="field">
-    <span class="field__label">{{ label }}</span>
+  <fieldset class="m-0 grid min-w-0 gap-2 border-0 p-0">
+    <legend class="mb-1.5 p-0 text-xs font-semibold tracking-wide text-muted uppercase">
+      {{ label }}
+    </legend>
 
-    <!-- ── Current items ── -->
-    <!-- One tile per row: leaves room for the alt-text input inside the narrow modal -->
+    <!-- ── Current items (one per row leaves room for the alt-text input) ── -->
     <ul v-if="items.length" class="m-0 grid list-none gap-2 p-0">
       <li
         v-for="(item, index) in items"
         :key="item.id"
-        class="flex gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-2"
+        class="flex gap-3 rounded-xl border border-line bg-surface p-2"
       >
         <!-- Preview -->
         <div
@@ -57,15 +58,15 @@
             :href="item.url"
             target="_blank"
             rel="noopener"
-            class="block truncate text-[#e2f5ef] no-underline hover:underline"
+            class="block truncate text-heading no-underline hover:underline"
           >
             {{ item.name || item.url }}
           </a>
-          <span class="text-[#9aa4b2]">{{ formatBytes(item.size) }}</span>
+          <span>{{ formatBytes(item.size) }}</span>
           <input
             v-if="item.type !== 'document'"
             :value="item.alt ?? ''"
-            class="field__input mt-1 !px-2 !py-1 !text-xs"
+            class="form-input mt-1 px-2! py-1! text-xs!"
             placeholder="Describe it (alt text)"
             :aria-label="`Alt text for ${item.name || item.type}`"
             @input="updateItem(index, { alt: $event.target.value })"
@@ -73,10 +74,10 @@
         </div>
 
         <!-- Actions -->
-        <div class="flex shrink-0 flex-col gap-1">
+        <div class="flex shrink-0 flex-col gap-0.5">
           <button
             type="button"
-            class="btn-delete !text-sm"
+            class="btn-ghost px-2! py-1! hover:text-red-400!"
             :aria-label="`Remove ${item.name || item.type}`"
             @click="removeItem(index)"
           >
@@ -85,7 +86,7 @@
           <template v-if="multiple && items.length > 1">
             <button
               type="button"
-              class="btn-edit !text-xs"
+              class="btn-ghost px-2! py-0.5! text-xs!"
               :disabled="index === 0"
               aria-label="Move earlier"
               @click="move(index, -1)"
@@ -94,7 +95,7 @@
             </button>
             <button
               type="button"
-              class="btn-edit !text-xs"
+              class="btn-ghost px-2! py-0.5! text-xs!"
               :disabled="index === items.length - 1"
               aria-label="Move later"
               @click="move(index, 1)"
@@ -111,28 +112,28 @@
       <li
         v-for="upload in uploads"
         :key="upload.id"
-        class="rounded-lg bg-white/[0.03] px-3 py-2 text-xs"
+        class="rounded-lg bg-surface px-3 py-2 text-xs"
       >
         <div class="flex items-center justify-between gap-2">
-          <span class="truncate text-[#e2f5ef]">{{ upload.name }}</span>
-          <span v-if="upload.error" class="text-[#f87171]">{{ upload.error }}</span>
-          <button
-            v-else
-            type="button"
-            class="btn-delete !text-xs"
-            aria-label="Cancel upload"
-            @click="upload.controller.abort()"
-          >
-            Cancel
-          </button>
+          <span class="truncate text-heading">{{ upload.name }}</span>
+          <span v-if="upload.error" class="text-red-400">{{ upload.error }}</span>
           <button
             v-if="upload.error"
             type="button"
-            class="btn-edit !text-xs"
+            class="btn-ghost px-2! py-0.5! text-xs!"
             aria-label="Dismiss"
             @click="dismiss(upload.id)"
           >
             ✕
+          </button>
+          <button
+            v-else
+            type="button"
+            class="btn-ghost px-2! py-0.5! text-xs!"
+            aria-label="Cancel upload"
+            @click="upload.controller.abort()"
+          >
+            Cancel
           </button>
         </div>
         <div
@@ -142,9 +143,11 @@
           :aria-valuenow="upload.progress"
           aria-valuemin="0"
           aria-valuemax="100"
+          :aria-label="`Uploading ${upload.name}`"
         >
+          <!-- Inline width: progress changes continuously -->
           <div
-            class="h-full bg-[#7cdbb6] transition-[width]"
+            class="h-full bg-accent transition-[width]"
             :style="{ width: `${upload.progress}%` }"
           ></div>
         </div>
@@ -153,16 +156,14 @@
 
     <!-- ── Drop zone ── -->
     <label
-      class="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed px-4 py-5 text-center text-xs transition-colors"
-      :class="
-        dragging ? 'border-[#7cdbb6] bg-[#7cdbb6]/10' : 'border-white/15 hover:border-[#7cdbb6]/60'
-      "
+      class="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed px-4 py-5 text-center text-xs transition-colors focus-within:border-accent"
+      :class="dragging ? 'border-accent bg-accent/10' : 'border-line hover:border-accent/60'"
       @dragover.prevent="dragging = true"
       @dragleave.prevent="dragging = false"
       @drop.prevent="onDrop"
     >
       <span class="text-lg" aria-hidden="true">⬆</span>
-      <span class="font-semibold text-[#e2f5ef]">
+      <span class="font-semibold text-heading">
         {{
           multiple
             ? 'Click to upload or drag files here'
@@ -171,15 +172,8 @@
               : 'Click to upload or drag a file here'
         }}
       </span>
-      <span class="text-[#9aa4b2]">{{ hint }}</span>
-      <input
-        ref="fileInput"
-        type="file"
-        class="sr-only"
-        :accept="accept"
-        :multiple="multiple"
-        @change="onPick"
-      />
+      <span>{{ hint }}</span>
+      <input type="file" class="sr-only" :accept="accept" :multiple="multiple" @change="onPick" />
     </label>
 
     <!-- ── Video link ── -->
@@ -187,22 +181,24 @@
       <input
         v-model.trim="embedUrl"
         type="url"
-        class="field__input !py-2 !text-xs"
+        class="form-input py-2! text-xs!"
         placeholder="…or paste a YouTube / Vimeo link"
         aria-label="YouTube or Vimeo link"
         @keydown.enter.prevent="addEmbed"
       />
       <button
         type="button"
-        class="btn-ghost shrink-0 !py-2 !text-xs"
+        class="btn-secondary shrink-0 px-3! py-2! text-xs!"
         :disabled="!embedUrl || addingEmbed"
         @click="addEmbed"
       >
         {{ addingEmbed ? 'Adding…' : 'Add video' }}
       </button>
     </div>
-    <p v-if="embedError" class="login-error !text-xs">{{ embedError }}</p>
-  </div>
+    <p v-if="embedError || error" class="m-0 text-xs text-red-400" role="alert">
+      {{ embedError || error }}
+    </p>
+  </fieldset>
 </template>
 
 <script setup>
@@ -212,12 +208,14 @@ import { injectMediaSession } from '@/composables/useMediaSession'
 import { formatBytes, mediaList, previewUrl } from '@/utils/media'
 
 const props = defineProps({
-  collection: { type: String, required: true }, // projects | certifications | hobbies | resume
+  collection: { type: String, required: true }, // projects | certifications | hobbies | resume | profile
   multiple: { type: Boolean, default: false },
   allowEmbed: { type: Boolean, default: false },
   accept: { type: String, default: 'image/*' },
   label: { type: String, default: 'Media' },
   hint: { type: String, default: 'JPG, PNG, WebP or GIF — up to 5 MB' },
+  /** Server validation message for this field (e.g. media.0.embed_url) */
+  error: { type: String, default: '' },
 })
 const model = defineModel({ type: [Array, Object], default: null })
 
@@ -225,7 +223,6 @@ const session = injectMediaSession()
 const items = computed(() => mediaList(model.value))
 const uploads = reactive([]) // [{ id, name, progress, error, controller }]
 const dragging = ref(false)
-const fileInput = ref(null)
 const embedUrl = ref('')
 const embedError = ref('')
 const addingEmbed = ref(false)

@@ -19,10 +19,13 @@ export const publicNav = [
   { name: 'hobbies', label: 'Hobbies' },
 ]
 
+/** Admin sidebar (AdminLayout). `exact` works like publicNav: only active on that exact URL. */
 export const adminNav = [
-  { name: 'admin-certifications', label: 'Certifications', icon: '🏅' },
+  { name: 'admin-dashboard', label: 'Dashboard', icon: '📊', exact: true },
+  { name: 'admin-profile', label: 'Profile', icon: '👤' },
   { name: 'admin-projects', label: 'Projects', icon: '🚀' },
-  { name: 'admin-resume', label: 'Resume', icon: '📄' },
+  { name: 'admin-certifications', label: 'Certifications', icon: '🏅' },
   { name: 'admin-timeline', label: 'Timeline', icon: '🕐' },
   { name: 'admin-hobbies', label: 'Hobbies', icon: '🎯' },
+  { name: 'admin-resume', label: 'Resume', icon: '📄' },
 ]

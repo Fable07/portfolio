@@ -1,9 +1,9 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { publicNav } from '@/config/navigation'
-import { profile, socialLinks } from '@/config/profile'
 import { useTheme } from '@/composables/useTheme'
 import { useToastStore } from '@/stores/toast'
+import { useProfileStore } from '@/stores/profile'
 import { useCertificationsStore, useProjectsStore, useResumeStore } from '@/stores/content'
 
 /**
@@ -38,12 +38,15 @@ export function usePaletteCommands() {
   const projects = useProjectsStore()
   const certifications = useCertificationsStore()
   const resume = useResumeStore()
+  const profileStore = useProfileStore()
+  const profile = computed(() => profileStore.profile)
 
   /** Load searchable data the first time the palette opens (cached afterwards). */
   function loadData() {
     projects.load()
     certifications.load()
     resume.load()
+    profileStore.load()
   }
 
   const pages = publicNav.map((page) => ({
@@ -74,22 +77,26 @@ export function usePaletteCommands() {
       icon: theme.isDarkMode.value ? '☀️' : '🌙',
       run: () => theme.toggleTheme(),
     },
-    {
-      id: 'action:copy-email',
-      group: 'Actions',
-      title: 'Copy email address',
-      subtitle: profile.email,
-      keywords: 'contact mail hire',
-      icon: '📋',
-      run: async () => {
-        try {
-          await navigator.clipboard.writeText(profile.email)
-          toast.success('Email copied')
-        } catch {
-          toast.error(`Couldn't copy — ${profile.email}`)
-        }
-      },
-    },
+    ...(profile.value.email
+      ? [
+          {
+            id: 'action:copy-email',
+            group: 'Actions',
+            title: 'Copy email address',
+            subtitle: profile.value.email,
+            keywords: 'contact mail hire',
+            icon: '📋',
+            run: async () => {
+              try {
+                await navigator.clipboard.writeText(profile.value.email)
+                toast.success('Email copied')
+              } catch {
+                toast.error(`Couldn't copy — ${profile.value.email}`)
+              }
+            },
+          },
+        ]
+      : []),
     ...(resume.pdfUrl
       ? [
           {
@@ -131,22 +138,24 @@ export function usePaletteCommands() {
     })),
   )
 
-  const links = socialLinks.map((social) => ({
-    id: `link:${social.label}`,
-    group: 'Links',
-    title: social.label,
-    subtitle: social.href.replace(/^mailto:/, ''),
-    keywords: 'social contact',
-    iconUrl: social.icon,
-    run: () => window.open(social.href, '_blank', 'noopener'),
-  }))
+  const links = computed(() =>
+    profile.value.socialLinks.map((social) => ({
+      id: `link:${social.label}`,
+      group: 'Links',
+      title: social.label,
+      subtitle: social.href.replace(/^mailto:/, ''),
+      keywords: 'social contact',
+      iconUrl: social.iconUrl,
+      run: () => window.open(social.href, '_blank', 'noopener'),
+    })),
+  )
 
   const commands = computed(() => [
     ...pages,
     ...actions.value,
     ...projectCommands.value,
     ...certificationCommands.value,
-    ...links,
+    ...links.value,
   ])
 
   return { commands, loadData }

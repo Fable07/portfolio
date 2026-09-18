@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { fuzzyFilter, fuzzyMatch, highlightParts } from '../fuzzy'
 import { countByType, formatBytes, mediaList, projectCover } from '../media'
+import { isSafeLink, urlFields } from '../validation'
+import { iconOptions, resolveIcon } from '../icons'
 
 describe('fuzzy', () => {
   it('matches letters in order', () => {
@@ -51,5 +53,42 @@ describe('media helpers', () => {
     expect(countByType(gallery)).toEqual({ image: 1, video: 1, embed: 1, document: 0 })
     expect(formatBytes(48213)).toBe('47.1 KB')
     expect(formatBytes(0)).toBe('')
+  })
+})
+
+describe('validation helpers', () => {
+  it('flags optional URL fields that are not http(s)', () => {
+    expect(
+      urlFields({ a: '', b: 'https://x.dev', c: 'ftp://x' }, { a: 'A', b: 'B', c: 'C' }),
+    ).toEqual({
+      c: 'C must start with http:// or https://',
+    })
+  })
+
+  it('accepts web and mailto links only', () => {
+    expect(isSafeLink('https://github.com/x')).toBe(true)
+    expect(isSafeLink('mailto:me@example.com')).toBe(true)
+    expect(isSafeLink('javascript:alert(1)')).toBe(false)
+    expect(isSafeLink('')).toBe(false)
+  })
+})
+
+describe('icons', () => {
+  it('resolves built-in icons by file name, preferring the requested set', () => {
+    expect(resolveIcon('vue-js.png')).toContain('vue-js')
+    expect(resolveIcon('nope.png')).toBe('')
+    // both sets contain github.png — `prefer` decides which one wins
+    expect(resolveIcon('github.png', null, 'social')).not.toBe(
+      resolveIcon('github.png', null, 'skill'),
+    )
+  })
+
+  it('uploaded media wins over a built-in name', () => {
+    expect(resolveIcon('vue-js.png', { url: '/uploads/custom.png' })).toBe('/uploads/custom.png')
+  })
+
+  it('lists picker options sorted by label', () => {
+    const options = iconOptions({ 'zeta.png': '/z.png', 'alpha-two.png': '/a.png' })
+    expect(options.map((o) => o.label)).toEqual(['alpha two', 'zeta'])
   })
 })

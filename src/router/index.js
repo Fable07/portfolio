@@ -13,7 +13,8 @@ import ProfileView from '@/views/public/ProfileView.vue'
  *   /projects/:id        PublicLayout → ProjectDetailView
  *   /terminal            TerminalView (full screen, no layout)
  *   /admin/login         AdminLoginView (no layout)
- *   /admin/projects …    AdminLayout  → AdminProjectsView …  (requires login)
+ *   /admin               AdminLayout  → AdminDashboardView    (requires login)
+ *   /admin/projects …    AdminLayout  → AdminProjectsView …
  *
  * Route `meta` fields:
  *   title        → browser tab title (applied in App.vue with @unhead/vue)
@@ -106,7 +107,18 @@ const routes = [
     component: () => import('@/layouts/AdminLayout.vue'),
     meta: { requiresAuth: true },
     children: [
-      { path: '', redirect: { name: 'admin-certifications' } },
+      {
+        path: '',
+        name: 'admin-dashboard',
+        component: () => import('@/views/admin/AdminDashboardView.vue'),
+        meta: { title: 'Admin dashboard' },
+      },
+      {
+        path: 'profile',
+        name: 'admin-profile',
+        component: () => import('@/views/admin/AdminProfileView.vue'),
+        meta: { title: 'Edit profile' },
+      },
       {
         path: 'certifications',
         name: 'admin-certifications',
@@ -173,7 +185,7 @@ router.beforeEach(async (to) => {
     return { name: 'admin-login', query: { redirect: to.fullPath } }
   }
   if (guestOnly && signedIn) {
-    return { name: 'admin-certifications' }
+    return { name: 'admin-dashboard' }
   }
   return true
 })
