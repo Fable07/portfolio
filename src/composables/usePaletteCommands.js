@@ -24,6 +24,7 @@ import { useCertificationsStore, useProjectsStore, useResumeStore } from '@/stor
 
 const PAGE_ICONS = {
   profile: '🏠',
+  skills: '🧩',
   about: '👋',
   certifications: '🏅',
   resume: '📄',
@@ -138,6 +139,21 @@ export function usePaletteCommands() {
     })),
   )
 
+  const skillCommands = computed(() =>
+    profile.value.skillGroups.flatMap((group) =>
+      group.skills.map((skill) => ({
+        id: `skill:${skill.name}`,
+        group: 'Skills',
+        title: skill.name,
+        subtitle: `${group.title} — see where it's used`,
+        keywords: 'skill graph stack technology',
+        iconUrl: skill.iconUrl,
+        icon: '🧩',
+        run: () => router.push({ name: 'skills', query: { skill: skill.name } }),
+      })),
+    ),
+  )
+
   const links = computed(() =>
     profile.value.socialLinks.map((social) => ({
       id: `link:${social.label}`,
@@ -155,6 +171,7 @@ export function usePaletteCommands() {
     ...actions.value,
     ...projectCommands.value,
     ...certificationCommands.value,
+    ...skillCommands.value,
     ...links.value,
   ])
 

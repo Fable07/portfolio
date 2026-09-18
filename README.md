@@ -27,6 +27,8 @@ The API base URL comes from `VITE_API_URL` (see `.env.example`).
 | --------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Command palette**   | `Ctrl/⌘ + K` or `/`          | Fuzzy search pages, projects, certifications, actions (theme, copy email, resume) and links. Remembers recent commands.                                                             |
 | **Terminal mode**     | `/terminal` or press `` ` `` | `help`, `whoami`, `projects`, `project <name>`, `skills`, `experience`, `contact`, `open <page>`, `theme`, `exit`… Tab completes, ↑/↓ history.                                      |
+| **Skill graph**       | `/skills?skill=Vue`          | Pick a skill to see the projects and certifications that use it, drawn as a small graph. Matches spellings ("Vue JS" ↔ a project tagged "vue").                                     |
+| **Case studies**      | `/projects/:id`              | Optional write-up per project: role, period, problem, approach, outcome, highlights and custom sections, with jump links.                                                           |
 | **Project pages**     | `/projects/:id`              | Gallery of images, videos and YouTube/Vimeo, full-screen viewer (← → Esc).                                                                                                          |
 | **Shareable filters** | `/projects?tag=Vue`          | Filter lives in the URL.                                                                                                                                                            |
 | **Media uploads**     | Admin forms                  | Project gallery, certification badge, hobby photo, resume PDF. Files go to the backend media driver; only JSON is stored.                                                           |
@@ -65,8 +67,9 @@ src/
 │   ├── common/            PageSection, SkeletonBlock, StateMessage, AppToast, AppBreadcrumbs, MediaLightbox
 │   ├── palette/           CommandPalette
 │   ├── terminal/          TerminalLine (renders one output line)
+│   ├── skills/            SkillConstellation (the skill → work drawing)
 │   └── admin/             AdminModal, AdminPageHeader, FormField, ToggleSwitch, SortableList,
-│                          MediaUploader, IconPicker, StringListEditor
+│                          MediaUploader, IconPicker, StringListEditor, CaseStudyEditor
 ├── composables/         Reusable logic (useX functions)
 │   ├── useCommandPalette  Palette open state + global keyboard shortcuts
 │   ├── usePaletteCommands Everything the palette can search/run
@@ -81,7 +84,8 @@ src/
 │   ├── parser.js          Tokenising, flags, Tab completion
 │   └── output.js          Output line/part helpers
 ├── utils/               Pure helpers (unit tested): fuzzy.js (search), media.js (media items),
-│                        icons.js (built-in icon sets), validation.js (form checks)
+│                        icons.js (built-in icon sets), validation.js (form checks),
+│                        skillGraph.js (skill ↔ project/certification matching)
 ├── stores/              Pinia stores
 │   ├── auth.js            Admin session
 │   ├── content.js         Public stores (published only) + admin stores (include drafts)
@@ -104,6 +108,8 @@ src/
 - **A terminal command:** push an object into `commands` in `src/terminal/commands.js`
   (`name`, `summary`, `run`). `help` and Tab completion pick it up.
 - **A palette action:** add it to `actions` in `src/composables/usePaletteCommands.js`.
+- **A skill spelling that should match:** add it to `SKILL_ALIASES` in `src/utils/skillGraph.js`
+  (e.g. `nuxt: 'nuxtjs'`), then the graph, terminal and palette all pick it up.
 - **An admin page:** create `src/views/admin/…View.vue` → add the route under the `/admin`
   children in `src/router/index.js` → add it to `adminNav` in `src/config/navigation.js`.
 - **A field to an admin form:** add it to that page's `emptyForm`, render a `<FormField>` with

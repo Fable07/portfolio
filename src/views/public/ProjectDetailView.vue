@@ -134,30 +134,91 @@
       </section>
 
       <div class="grid gap-8 lg:grid-cols-[1fr_260px]">
-        <div>
-          <h2 class="m-0 mb-3 text-lg font-semibold text-heading">Overview</h2>
-          <p v-if="project.description" class="m-0 leading-relaxed whitespace-pre-line">
-            {{ project.description }}
-          </p>
-          <p v-else class="m-0 italic">No description yet.</p>
+        <div class="min-w-0">
+          <!-- ── Case study (only the parts that are filled in) ── -->
+          <section id="overview" class="scroll-mt-24">
+            <h2 class="m-0 mb-3 text-lg font-semibold text-heading">Overview</h2>
+            <p v-if="project.description" class="m-0 leading-relaxed whitespace-pre-line">
+              {{ project.description }}
+            </p>
+            <p v-else class="m-0 italic">No description yet.</p>
+          </section>
+
+          <ul v-if="caseStudy.highlights?.length" class="m-0 mt-6 grid list-none gap-2 p-0">
+            <li
+              v-for="(highlight, index) in caseStudy.highlights"
+              :key="index"
+              class="flex gap-2.5 rounded-xl border border-accent/20 bg-accent/5 px-3.5 py-2.5 text-sm"
+            >
+              <span aria-hidden="true" class="text-accent">✦</span>
+              <span class="text-heading">{{ highlight }}</span>
+            </li>
+          </ul>
+
+          <section
+            v-for="part in storyParts"
+            :key="part.id"
+            :id="part.id"
+            class="mt-8 scroll-mt-24"
+          >
+            <h2 class="m-0 mb-3 text-lg font-semibold text-heading">{{ part.heading }}</h2>
+            <p class="m-0 leading-relaxed whitespace-pre-line">{{ part.body }}</p>
+          </section>
         </div>
 
-        <aside class="h-fit rounded-xl border border-line bg-surface p-5">
-          <h2 class="m-0 mb-3 text-sm font-semibold tracking-wide text-heading uppercase">
-            Tech stack
-          </h2>
-          <div v-if="tags.length" class="flex flex-wrap gap-1.5">
-            <RouterLink
-              v-for="tag in tags"
-              :key="tag"
-              :to="{ name: 'projects', query: { tag } }"
-              class="chip no-underline hover:ring-1 hover:ring-accent"
-              :title="`All ${tag} projects`"
+        <aside class="grid h-fit gap-4 lg:sticky lg:top-4">
+          <!-- Jump links appear once there's more than the overview to read -->
+          <nav
+            v-if="storyParts.length"
+            aria-label="On this page"
+            class="rounded-xl border border-line bg-surface p-5"
+          >
+            <h2 class="m-0 mb-2 text-sm font-semibold tracking-wide text-heading uppercase">
+              On this page
+            </h2>
+            <ul class="m-0 grid list-none gap-1.5 p-0 text-sm">
+              <li>
+                <a href="#overview" class="text-accent no-underline hover:underline">Overview</a>
+              </li>
+              <li v-for="part in storyParts" :key="part.id">
+                <a :href="`#${part.id}`" class="text-accent no-underline hover:underline">{{
+                  part.heading
+                }}</a>
+              </li>
+            </ul>
+          </nav>
+
+          <div class="rounded-xl border border-line bg-surface p-5">
+            <h2 class="m-0 mb-3 text-sm font-semibold tracking-wide text-heading uppercase">
+              Tech stack
+            </h2>
+            <div v-if="tags.length" class="flex flex-wrap gap-1.5">
+              <RouterLink
+                v-for="tag in tags"
+                :key="tag"
+                :to="{ name: 'skills', query: { skill: tag } }"
+                class="chip no-underline hover:ring-1 hover:ring-accent"
+                :title="`See where ${tag} is used`"
+              >
+                {{ tag }}
+              </RouterLink>
+            </div>
+            <p v-else class="m-0 text-sm">—</p>
+
+            <dl
+              v-if="caseStudy.role || caseStudy.period"
+              class="m-0 mt-4 grid gap-2 border-t border-line pt-4 text-sm"
             >
-              {{ tag }}
-            </RouterLink>
+              <div v-if="caseStudy.role">
+                <dt class="text-xs tracking-wide text-muted uppercase">Role</dt>
+                <dd class="m-0 text-heading">{{ caseStudy.role }}</dd>
+              </div>
+              <div v-if="caseStudy.period">
+                <dt class="text-xs tracking-wide text-muted uppercase">When</dt>
+                <dd class="m-0 text-heading">{{ caseStudy.period }}</dd>
+              </div>
+            </dl>
           </div>
-          <p v-else class="m-0 text-sm">—</p>
         </aside>
       </div>
 
@@ -237,6 +298,28 @@ watch(() => props.id, load, { immediate: true })
 const gallery = computed(() =>
   mediaList(project.value?.media).filter((item) => item.type !== 'document'),
 )
+
+/**
+ * Case study (all fields optional — see the backend's add_case_study migration).
+ * `storyParts` is the readable write-up in order: the three standard questions first,
+ * then any custom sections the admin added.
+ */
+const caseStudy = computed(() => project.value?.case_study ?? {})
+
+const storyParts = computed(() => {
+  const study = caseStudy.value
+  const standard = [
+    { id: 'problem', heading: 'The problem', body: study.problem },
+    { id: 'approach', heading: 'My approach', body: study.approach },
+    { id: 'outcome', heading: 'Outcome', body: study.outcome },
+  ]
+  const custom = (study.sections ?? []).map((section, index) => ({
+    id: `section-${index + 1}`,
+    heading: section.heading,
+    body: section.body,
+  }))
+  return [...standard, ...custom].filter((part) => part.body?.trim())
+})
 const featured = computed(() => gallery.value[featuredIndex.value] ?? gallery.value[0])
 const tags = computed(() =>
   (project.value?.tech_stack || '')

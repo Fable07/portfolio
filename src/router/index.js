@@ -47,6 +47,12 @@ const routes = [
         meta: { title: 'About', description: 'About Jefferson S. Caragay.' },
       },
       {
+        path: 'skills',
+        name: 'skills',
+        component: () => import('@/views/public/SkillsView.vue'),
+        meta: { title: 'Skills', description: 'Skills and the projects where they were used.' },
+      },
+      {
         path: 'certifications',
         name: 'certifications',
         component: () => import('@/views/public/CertificationsView.vue'),

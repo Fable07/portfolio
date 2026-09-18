@@ -105,6 +105,7 @@ import {
 import { useProfileStore } from '@/stores/profile'
 import { commandNames, commands, findCommand, runCommand, welcomeLines } from '@/terminal/commands'
 import { complete, tokenize } from '@/terminal/parser'
+import { buildSkillGraph } from '@/utils/skillGraph'
 import { line as outputLine, muted, plain } from '@/terminal/output'
 
 useHead({ title: 'Terminal' })
@@ -189,6 +190,14 @@ const ctx = {
     certifications: () => listFrom(stores.certifications),
     hobbies: () => listFrom(stores.hobbies),
     timeline: () => listFrom(stores.timeline),
+    // Skill → projects/certifications links (same data as the /skills page)
+    skillGraph: async () => {
+      const [projects, certifications] = await Promise.all([
+        listFrom(stores.projects),
+        listFrom(stores.certifications),
+      ])
+      return buildSkillGraph({ skillGroups: profile.value.skillGroups, projects, certifications })
+    },
     resumeUrl: async () => {
       await stores.resume.load()
       return stores.resume.status === 'error' ? '/resume.pdf' : stores.resume.pdfUrl

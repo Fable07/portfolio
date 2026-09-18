@@ -1,5 +1,6 @@
 import { fuzzyMatch } from '@/utils/fuzzy'
 import { countByType } from '@/utils/media'
+import { findSkill } from '@/utils/skillGraph'
 import { parseLine } from './parser'
 import {
   accent,
@@ -29,7 +30,7 @@ import {
  * `ctx` is everything a command may use, passed in by TerminalView (so commands
  * can be unit tested with a fake ctx):
  *   profile, skillGroups, socialLinks, pages,
- *   data.{projects, certifications, hobbies, timeline, resumeUrl}()  → Promise
+ *   data.{projects, certifications, hobbies, timeline, resumeUrl, skillGraph}()  → Promise
  *   navigate(to), openUrl(url), theme.{current(), set(name)}, history(), clear(), exit()
  *
  * To add a command: push an object into `commands` below — help and Tab completion
@@ -41,6 +42,16 @@ const splitTags = (stack) =>
     .split(',')
     .map((tag) => tag.trim())
     .filter(Boolean)
+
+/** Closest skill by name when the exact/alias lookup finds nothing. */
+function bestSkillMatch(graph, query) {
+  let best = null
+  for (const skill of graph.skills) {
+    const match = fuzzyMatch(query, skill.name)
+    if (match && (!best || match.score > best.score)) best = { skill, score: match.score }
+  }
+  return best?.skill ?? null
+}
 
 /** Find a project by list number ("2") or (fuzzy) name ("inventory"). */
 function findProject(projects, query) {
@@ -128,6 +139,51 @@ export const commands = [
         line(bold(group.title)),
         line(muted('  '), group.skills.map((skill) => skill.name).join(' · ')),
       ])
+    },
+  },
+  {
+    name: 'skill',
+    summary: 'Where one skill was used: skill vue',
+    usage: '<name>',
+    async complete(_, { data }) {
+      return (await data.skillGraph()).skills.map((skill) => skill.name)
+    },
+    async run({ args }, { data }) {
+      if (!args.length) return error('usage: skill <name>   (try `skills` for the full list)')
+
+      const query = args.join(' ')
+      const graph = await data.skillGraph()
+      const skill = findSkill(graph, query) ?? bestSkillMatch(graph, query)
+      if (!skill) return error(`skill: nothing matches "${query}" — try \`skills\``)
+
+      return [
+        line(bold(skill.name), muted(`  ${skill.group}`)),
+        blank(),
+        ...(skill.projects.length
+          ? skill.projects.map((project) =>
+              line(
+                accent(' 🚀 '),
+                routeLink(project.title, { name: 'project-detail', params: { id: project.id } }),
+              ),
+            )
+          : [line(muted(' No projects use it yet.'))]),
+        ...skill.certifications.map((certification) =>
+          line(
+            accent(' 🏅 '),
+            certification.credential_url
+              ? link(certification.title, certification.credential_url)
+              : text(certification.title),
+          ),
+        ),
+        blank(),
+        line(
+          muted('Graph: '),
+          routeLink(`/skills?skill=${skill.name}`, {
+            name: 'skills',
+            query: { skill: skill.name },
+          }),
+        ),
+      ]
     },
   },
   {

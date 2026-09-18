@@ -40,6 +40,13 @@
         ★ Featured
       </span>
       <span
+        v-if="hasCaseStudy"
+        class="absolute top-2 right-2 rounded-md bg-sky-400/90 px-2 py-0.5 text-xs font-bold text-sky-950"
+        title="This project has a written case study"
+      >
+        Case study
+      </span>
+      <span
         v-if="mediaBadge"
         class="absolute right-2 bottom-2 rounded-md bg-black/65 px-2 py-0.5 text-xs text-white"
       >
@@ -124,6 +131,12 @@ const tags = computed(() =>
     .map((tag) => tag.trim())
     .filter(Boolean),
 )
+
+/** Does the project have any case-study text worth advertising? */
+const hasCaseStudy = computed(() => {
+  const study = props.project.case_study ?? {}
+  return !!(study.problem || study.approach || study.outcome || study.sections?.length)
+})
 
 /** "📷 3 · ▶ 1" — how much media a project has */
 const mediaBadge = computed(() => {

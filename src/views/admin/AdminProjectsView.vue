@@ -232,6 +232,8 @@
         :error="fieldError('media')"
       />
 
+      <CaseStudyEditor v-model="editor.form.case_study" :field-error="fieldError" />
+
       <FormField
         v-slot="{ id, describedBy, invalid }"
         label="Cover image URL"
@@ -270,6 +272,7 @@
 import { computed, onMounted, ref } from 'vue'
 import AdminModal from '@/components/admin/AdminModal.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
+import CaseStudyEditor from '@/components/admin/CaseStudyEditor.vue'
 import FormField from '@/components/admin/FormField.vue'
 import MediaUploader from '@/components/admin/MediaUploader.vue'
 import SortableList from '@/components/admin/SortableList.vue'
@@ -311,6 +314,7 @@ const { editor, isDirty, fieldError, openCreate, openEdit, closeEditor, save } =
       is_published: true,
       is_featured: false,
       media: [], // gallery — list of media items (JSON), see utils/media.js
+      case_study: {}, // optional write-up (see CaseStudyEditor)
     },
     validate: (form) => ({
       ...requiredFields(form, { title: 'Title' }),

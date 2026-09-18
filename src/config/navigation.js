@@ -13,6 +13,7 @@
 export const publicNav = [
   { name: 'profile', label: 'Profile', exact: true },
   { name: 'about', label: 'About' },
+  { name: 'skills', label: 'Skills' },
   { name: 'certifications', label: 'Certifications' },
   { name: 'resume', label: 'Resume' },
   { name: 'projects', label: 'Projects' },

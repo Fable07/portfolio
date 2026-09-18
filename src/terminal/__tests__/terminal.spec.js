@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { complete, parseLine, tokenize } from '../parser'
 import { findCommand, runCommand } from '../commands'
 import { plain } from '../output'
+import { buildSkillGraph } from '@/utils/skillGraph'
 
 /** Fake ctx — the same shape TerminalView passes to commands. */
 function makeCtx(overrides = {}) {
@@ -38,6 +39,15 @@ function makeCtx(overrides = {}) {
       hobbies: async () => [],
       timeline: async () => [],
       resumeUrl: async () => '/resume.pdf',
+      skillGraph: async () =>
+        buildSkillGraph({
+          skillGroups: [{ title: 'Frameworks', skills: [{ name: 'Vue JS' }, { name: 'Flutter' }] }],
+          projects: [
+            { id: 7, title: 'Portfolio Website', tech_stack: 'Vue, Laravel' },
+            { id: 9, title: 'Inventory App', tech_stack: 'Flutter' },
+          ],
+          certifications: [{ id: 3, title: 'Vue.js Developer', issuer: 'Vue School' }],
+        }),
     },
     navigate: vi.fn(),
     openUrl: vi.fn(),
@@ -138,5 +148,25 @@ describe('commands', () => {
       data: { ...makeCtx().data, projects: () => Promise.reject(new Error('offline')) },
     })
     expect(textOf(await runCommand('projects', ctx))).toBe('projects: offline')
+  })
+})
+
+describe('skill command', () => {
+  it('lists the projects and certifications behind a skill', async () => {
+    const output = textOf(await runCommand('skill vue', makeCtx()))
+    expect(output).toContain('Vue JS')
+    expect(output).toContain('Portfolio Website') // tagged "Vue", matched through the alias
+    expect(output).toContain('Vue.js Developer') // certification matched by title
+    expect(output).toContain('/skills?skill=Vue JS')
+  })
+
+  it('says so when a skill is not used yet, and suggests close matches', async () => {
+    expect(textOf(await runCommand('skill flutter', makeCtx()))).toContain('Inventory App')
+    expect(textOf(await runCommand('skill fluttr', makeCtx()))).toContain('Inventory App')
+    expect(textOf(await runCommand('skill zzz', makeCtx()))).toContain('nothing matches')
+  })
+
+  it('requires a name', async () => {
+    expect(textOf(await runCommand('skill', makeCtx()))).toContain('usage: skill <name>')
   })
 })
