@@ -15,7 +15,12 @@
     "lint:eslint": "eslint . --fix --cache",
     "format": "prettier --write --experimental-cli src/",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint:check": "run-s lint:check:*",
+    "lint:check:oxlint": "oxlint .",
+    "lint:check:eslint": "eslint .",
+    "format:check": "prettier --check src/",
+    "ci": "run-s lint:check format:check test build"
   },
   "dependencies": {
     "@unhead/vue": "^3.4.1",

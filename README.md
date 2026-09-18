@@ -10,8 +10,9 @@ npm install
 npm run dev      # dev server with hot reload
 npm run build    # production build → dist/
 npm run test     # unit tests (Vitest)
-npm run lint     # oxlint + eslint
+npm run lint     # oxlint + eslint (rewrites files)
 npm run format   # prettier
+npm run ci       # what CI runs: lint:check + format:check + test + build (never rewrites)
 ```
 
 ## Environment
@@ -146,3 +147,21 @@ in `src/styles/main.css` — `bg-page`, `bg-card`, `bg-surface`, `border-line`, 
 `text-muted`, `text-accent` — so they switch automatically between light and dark.
 Repeated patterns are custom utilities: `btn-primary`, `btn-secondary`, `chip`, `kbd`.
 Inline `:style` is only used for values that change at runtime (scroll bar, upload progress).
+
+## CI, containers and deployment
+
+| File                       | What it does                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------- |
+| `.github/workflows/ci.yml` | On every push/PR to `dev` or `main`: lint, format check, tests, build.                      |
+| `Dockerfile`               | Production image: Node builds `dist/`, nginx serves it (SPA routing, asset caching).        |
+| `Dockerfile.dev`           | Development image: Vite dev server with hot reload.                                         |
+| `docker-compose.dev.yml`   | Frontend + API together for local work (expects the two repos side by side).                |
+| `docker-compose.prod.yml`  | The live stack, with a persistent volume for uploaded media.                                |
+| `DEPLOYMENT.md`            | The `dev` → `main` release flow, environment variables, hosting options, go-live checklist. |
+
+Two things worth knowing before deploying:
+
+- **`VITE_API_URL` is baked in at build time.** Changing the API URL means rebuilding the
+  frontend image, not restarting it.
+- **Dev and production share one Supabase database,** so migrations must stay additive and
+  media stays in one `MEDIA_FOLDER`. `DEPLOYMENT.md` explains the consequences.
