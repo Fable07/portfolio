@@ -47,6 +47,7 @@ small JSON description (a **MediaItem**):
 | Column | Shape | Used for |
 |---|---|---|
 | `projects.media` | array | gallery: images, videos, YouTube/Vimeo embeds |
+| `projects.case_study` | object | optional write-up: role, period, problem, approach, outcome, highlights, sections |
 | `certifications.badge` | object | badge image |
 | `hobbies.image` | object | photo |
 | `resume.pdf` | object | uploaded resume |
@@ -70,6 +71,22 @@ CLOUDINARY_API_SECRET=…
 Existing items keep working after a switch — each item remembers its own `provider`.
 The Cloudinary driver is written but not yet tested with real credentials: do one test upload
 after adding keys.
+
+## Case studies
+
+`projects.case_study` holds an optional write-up rendered on the project's public page.
+Every field is optional, so a project can have a one-liner or a full story:
+
+```json
+{ "role": "Full-stack developer", "period": "Jan – Mar 2026",
+  "problem": "…", "approach": "…", "outcome": "…",
+  "highlights": ["Cut load time by 60%"],
+  "sections": [{ "heading": "Architecture", "body": "…" }] }
+```
+
+Text is stored and displayed as plain text (line breaks preserved) — no HTML or Markdown,
+so project content can never inject markup into the page. A `sections` entry must have
+both a heading and a body.
 
 ## Publishing & ordering
 
