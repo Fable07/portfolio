@@ -1,0 +1,29 @@
+# Development image — `php artisan serve` with the source mounted from the host.
+#
+# No nginx, no opcache, no config caching: every request reads the current files, so
+# editing a controller takes effect on the next request.
+FROM php:8.2-cli-alpine
+
+RUN apk add --no-cache git unzip \
+    && apk add --no-cache --virtual .build-deps postgresql-dev \
+    && docker-php-ext-install pdo_pgsql bcmath \
+    && apk del .build-deps
+
+# Composer, copied from the official image instead of installed by hand
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Uploads need the same headroom as production
+COPY docker/php.dev.ini /usr/local/etc/php/conf.d/99-portfolio.ini
+
+WORKDIR /app
+
+COPY composer.json composer.lock ./
+RUN composer install --prefer-dist --no-interaction --no-progress --no-scripts
+
+COPY . .
+RUN composer dump-autoload --no-interaction
+
+EXPOSE 8000
+
+# --host 0.0.0.0 so the port is reachable from outside the container
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]

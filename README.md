@@ -106,15 +106,28 @@ falls back to `src/config/profile.js`.
 
 ## Environments: dev and production
 
-Keep the two completely separate so testing never touches the live site:
+One Supabase database serves both, which is deliberate for a personal portfolio: the
+admin edits the same content everywhere, and there is no data to keep in sync. Only the
+**code** is split.
 
 | | Development | Production |
 |---|---|---|
 | Git branch | `dev` | `main` (merge `dev` when verified) |
-| Database | its own Supabase project | its own Supabase project |
-| `MEDIA_FOLDER` | `portfolio-dev` | `portfolio-prod` |
-| `MEDIA_DRIVER` | `local` or `cloudinary` | `cloudinary` |
+| Database | the same Supabase project | the same Supabase project |
+| `MEDIA_FOLDER` | `portfolio` | `portfolio` (shared: paths live in the database) |
+| `MEDIA_DRIVER` | `local` | `local` + a persistent volume, or `cloudinary` |
 | `APP_ENV` / `APP_DEBUG` | `local` / `true` | `production` / `false` |
 | `FRONTEND_URLS` | `http://localhost:5173` | your live domain |
+| Runs as | `php artisan serve` or `Dockerfile.dev` | `Dockerfile` (nginx + php-fpm) |
 
-Containers (Docker) for both environments are planned for Phase 5.
+Because the database is shared, **migrations must stay additive** — add nullable columns
+and new tables, never rename or drop something the deployed `main` still reads. A
+migration run from `dev` changes the live schema immediately.
+
+## Containers, CI and deployment
+
+- `Dockerfile` — production image (nginx + php-fpm + supervisord)
+- `Dockerfile.dev` — development image (`php artisan serve`, source mounted)
+- `.github/workflows/ci.yml` — Composer install + `php artisan test` on every push/PR
+- `DEPLOYMENT.md` — environment variables, media persistence, migrations, health check
+- The dev/prod compose files live in the frontend repo, which runs both services together.
