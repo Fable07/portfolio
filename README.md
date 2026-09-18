@@ -21,9 +21,13 @@ php artisan test                                    # feature tests (in-memory S
 |---|---|---|---|
 | POST | `/api/auth/login` | — | Get a bearer token (5 attempts/min) |
 | GET | `/api/auth/me`, POST `/api/auth/logout` | ✔ | Session |
-| GET | `/api/projects`, `/api/projects/{id}` | — | Projects (with `media` gallery) |
+| GET | `/api/profile` | — | Owner profile (name, roles, about, skills, socials); `{}` until saved |
+| PUT | `/api/profile` | ✔ | Save the whole profile |
+| GET | `/api/projects`, `/api/projects/{id}` | — | Published projects (with `media` gallery) |
+| GET | `/api/projects?drafts=1` | ✔ | Include unpublished (draft) items — also on certifications |
 | GET | `/api/certifications`, `/api/hobbies`, `/api/timeline`, `/api/resume` | — | Content |
-| POST/PUT/DELETE | `/api/{projects,certifications,hobbies,timeline}` | ✔ | Manage content |
+| POST/PUT/DELETE | `/api/{projects,certifications,hobbies,timeline}` | ✔ | Manage content (PUT accepts partial updates) |
+| PUT | `/api/{projects,certifications,hobbies,timeline}/reorder` | ✔ | Save display order: `{ order: [3, 1, 2] }` |
 | PUT | `/api/resume` | ✔ | `{ pdf_url }` or `{ pdf: MediaItem }` |
 | POST | `/api/media` | ✔ | Upload a file (`file`, `collection`) → MediaItem JSON |
 | POST | `/api/media/embed` | ✔ | YouTube/Vimeo link → MediaItem JSON |
@@ -66,6 +70,22 @@ CLOUDINARY_API_SECRET=…
 Existing items keep working after a switch — each item remembers its own `provider`.
 The Cloudinary driver is written but not yet tested with real credentials: do one test upload
 after adding keys.
+
+## Publishing & ordering
+
+- `is_published` on **projects** and **certifications**: `false` = draft, hidden from visitors.
+  A signed-in admin sees drafts by adding `?drafts=1`; a draft project is 404 for visitors.
+- `is_featured` on **projects**: shown in "Featured projects" on the home page.
+- `order` on every list: saved by the `/reorder` endpoints (the first id gets order 0).
+
+## Profile
+
+One row in the `profile` table holds the owner's details: name, handle (terminal prompt),
+email, location, availability badge, roles, about paragraphs, avatar (MediaItem), skill groups
+and social links. A skill icon is either a built-in icon file name shipped with the frontend
+(`"vue-js.png"`) or an uploaded `icon_media` item. Social links accept `https://` and
+`mailto:` only. Until it is saved once, `GET /api/profile` returns `{}` and the frontend
+falls back to `src/config/profile.js`.
 
 ## Environments: dev and production
 
