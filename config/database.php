@@ -97,6 +97,14 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // Supabase is remote, so opening a TLS connection costs ~1.8s here — more than
+            // the query itself. A persistent connection is reused by the same PHP process
+            // across requests, which locally is the difference between a 4s and a 1s API
+            // call. Off by default: it only helps long-lived processes (artisan serve,
+            // php-fpm workers), and Supabase's session pooler holds the connection open.
+            'options' => [
+                PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', false),
+            ],
         ],
 
         'sqlsrv' => [
