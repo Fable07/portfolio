@@ -10,6 +10,7 @@ use App\Http\Controllers\HobbyController;
 use App\Http\Controllers\TimelineController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\MessageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -30,6 +31,9 @@ Route::get('/hobbies', [HobbyController::class, 'index']);
 Route::get('/timeline', [TimelineController::class, 'index']);
 Route::get('/profile', [ProfileController::class, 'show']);
 
+// Contact form — 5 messages per hour per IP
+Route::post('/messages', [MessageController::class, 'store'])->middleware('throttle:5,60');
+
 /*
 |--------------------------------------------------------------------------
 | Protected routes — admin panel only (Sanctum bearer token)
@@ -40,6 +44,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth session
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
+
+    // Contact inbox
+    Route::get('/messages', [MessageController::class, 'index']);
+    Route::put('/messages/{id}', [MessageController::class, 'update']);
+    Route::delete('/messages/{id}', [MessageController::class, 'destroy']);
 
     // Profile (single record)
     Route::put('/profile', [ProfileController::class, 'update']);
