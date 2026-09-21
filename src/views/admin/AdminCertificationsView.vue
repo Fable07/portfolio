@@ -1,65 +1,91 @@
-<!-- AdminCertificationsView — /admin/certifications — list, add, edit and delete certifications -->
+<!--
+  AdminCertificationsView — /admin/certifications
+  Reorder by dragging, toggle Published, add/edit with badge upload, delete with Undo.
+-->
 <template>
   <section>
-    <div class="admin-toolbar">
-      <button type="button" class="btn-primary btn--icon" @click="openCreate">
-        <span aria-hidden="true">＋</span> Add Certification
+    <AdminPageHeader
+      v-model:search="search"
+      title="Certifications"
+      description="Drag to reorder. Drafts are hidden from visitors."
+      search-placeholder="Search certifications"
+    >
+      <button type="button" class="btn-primary" @click="openCreate">＋ Add certification</button>
+    </AdminPageHeader>
+
+    <div v-if="store.isLoading" class="grid gap-2" aria-busy="true">
+      <SkeletonBlock v-for="n in 3" :key="n" class="h-16 w-full rounded-xl" />
+    </div>
+
+    <StateMessage
+      v-else-if="store.status === 'error'"
+      type="error"
+      :message="`Couldn't load certifications: ${store.error?.message}`"
+      retry
+      @retry="store.load({ force: true })"
+    />
+
+    <div
+      v-else-if="!store.items.length"
+      class="rounded-2xl border border-dashed border-line p-10 text-center"
+    >
+      <p class="m-0 text-3xl" aria-hidden="true">🏅</p>
+      <p class="m-0 mt-2">No certifications yet.</p>
+      <button type="button" class="btn-primary mt-4" @click="openCreate">
+        Add your first certification
       </button>
-      <span class="cert-count">
-        {{ store.items.length }} certification{{ store.items.length !== 1 ? 's' : '' }}
-      </span>
     </div>
 
-    <div v-if="store.isLoading" class="admin-empty"><p>Loading...</p></div>
-
-    <div v-else-if="store.status === 'error'" class="admin-empty">
-      <p>Couldn't load certifications: {{ store.error?.message }}</p>
-      <button type="button" class="btn-ghost" @click="store.load({ force: true })">
-        Try again
-      </button>
-    </div>
-
-    <div v-else-if="store.items.length === 0" class="admin-empty">
-      <div class="admin-empty__icon" aria-hidden="true">📋</div>
-      <p>No certifications yet. Add your first one!</p>
-    </div>
-
-    <div v-else class="cert-table-wrap">
-      <table class="cert-table">
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Issuer</th>
-            <th>Date</th>
-            <th>Credential URL</th>
-            <th>Badge URL</th>
-            <th class="th-actions">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="cert in store.items" :key="cert.id" class="cert-row">
-            <td class="td-title">{{ cert.title }}</td>
-            <td class="td-muted">{{ cert.issuer || '—' }}</td>
-            <td class="td-muted">{{ cert.date || '—' }}</td>
-            <td class="td-url">
+    <template v-else>
+      <p v-if="search" class="m-0 mb-2 text-xs">
+        {{ visible.length }} of {{ store.items.length }} shown · clear the search to reorder
+      </p>
+      <SortableList :items="visible" :disabled="!!search" @reorder="saveOrder">
+        <template #default="{ item: cert }">
+          <div class="flex flex-wrap items-center gap-3">
+            <div
+              class="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-accent/8"
+            >
+              <img
+                v-if="badgeUrl(cert)"
+                :src="badgeUrl(cert)"
+                alt=""
+                class="size-9 object-contain"
+              />
+              <span v-else aria-hidden="true">🏅</span>
+            </div>
+            <div class="min-w-0 flex-1 basis-40">
+              <p class="m-0 flex flex-wrap items-center gap-2 font-semibold text-heading">
+                <span class="truncate">{{ cert.title }}</span>
+                <span
+                  v-if="!cert.is_published"
+                  class="rounded bg-amber-400/15 px-1.5 py-0.5 text-[0.65rem] font-bold text-amber-300 uppercase"
+                  >Draft</span
+                >
+              </p>
+              <p class="m-0 truncate text-xs">
+                {{ [cert.issuer, cert.date].filter(Boolean).join(' · ') || '—' }}
+              </p>
+            </div>
+            <div class="flex items-center gap-1">
               <a
                 v-if="cert.credential_url"
                 :href="cert.credential_url"
                 target="_blank"
                 rel="noopener"
-                class="url-link"
-                >↗ Link</a
+                class="btn-ghost px-2.5!"
+                :aria-label="`Open credential for ${cert.title}`"
+                >↗</a
               >
-              <span v-else class="td-muted">—</span>
-            </td>
-            <td class="td-url">
-              <span v-if="cert.badge_url" class="url-pill">✔ Set</span>
-              <span v-else class="td-muted">—</span>
-            </td>
-            <td class="td-actions">
+              <ToggleSwitch
+                :model-value="!!cert.is_published"
+                :label="`Published: ${cert.title}`"
+                hide-label
+                @update:model-value="togglePublished(cert)"
+              />
               <button
                 type="button"
-                class="btn-edit"
+                class="btn-ghost px-2.5!"
                 :aria-label="`Edit ${cert.title}`"
                 @click="openEdit(cert)"
               >
@@ -67,117 +93,194 @@
               </button>
               <button
                 type="button"
-                class="btn-delete"
+                class="btn-ghost px-2.5! hover:text-red-400!"
                 :aria-label="`Delete ${cert.title}`"
-                @click="askDelete(cert)"
+                @click="deleteWithUndo(cert)"
               >
                 🗑️
               </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+            </div>
+          </div>
+        </template>
+      </SortableList>
+    </template>
 
-    <!-- Add / Edit form -->
     <AdminModal
       :open="editor.open"
-      :title="editor.isEdit ? 'Edit Certification' : 'Add Certification'"
+      :title="editor.isEdit ? 'Edit certification' : 'Add certification'"
       :error="editor.error"
+      :dirty="isDirty"
       @close="closeEditor"
     >
-      <div class="field">
-        <label class="field__label" for="cert-title">Title <span class="req">*</span></label>
+      <FormField
+        v-slot="{ id, describedBy, invalid }"
+        label="Title"
+        required
+        :error="fieldError('title')"
+      >
         <input
-          id="cert-title"
+          :id="id"
           v-model="editor.form.title"
-          class="field__input"
-          placeholder="e.g. AWS Solutions Architect"
+          class="form-input"
+          placeholder="e.g. AWS Cloud Practitioner"
+          :aria-describedby="describedBy"
+          :aria-invalid="invalid"
         />
+      </FormField>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <FormField
+          v-slot="{ id, describedBy, invalid }"
+          label="Issuer"
+          optional
+          :error="fieldError('issuer')"
+        >
+          <input
+            :id="id"
+            v-model="editor.form.issuer"
+            class="form-input"
+            placeholder="e.g. Amazon Web Services"
+            :aria-describedby="describedBy"
+            :aria-invalid="invalid"
+          />
+        </FormField>
+        <FormField
+          v-slot="{ id, describedBy, invalid }"
+          label="Date"
+          optional
+          :error="fieldError('date')"
+        >
+          <input
+            :id="id"
+            v-model="editor.form.date"
+            class="form-input"
+            placeholder="e.g. Jan 2025"
+            :aria-describedby="describedBy"
+            :aria-invalid="invalid"
+          />
+        </FormField>
       </div>
-      <div class="field">
-        <label class="field__label" for="cert-issuer">Issuer</label>
+      <FormField
+        v-slot="{ id, describedBy, invalid }"
+        label="Credential URL"
+        optional
+        :error="fieldError('credential_url')"
+      >
         <input
-          id="cert-issuer"
-          v-model="editor.form.issuer"
-          class="field__input"
-          placeholder="e.g. Amazon Web Services"
-        />
-      </div>
-      <div class="field">
-        <label class="field__label" for="cert-date">Date</label>
-        <input
-          id="cert-date"
-          v-model="editor.form.date"
-          class="field__input"
-          placeholder="e.g. 2024 or Jan 2025"
-        />
-      </div>
-      <div class="field">
-        <label class="field__label" for="cert-credential">Credential URL</label>
-        <input
-          id="cert-credential"
-          v-model="editor.form.credential_url"
+          :id="id"
+          v-model.trim="editor.form.credential_url"
           type="url"
-          class="field__input"
-          placeholder="https://..."
+          class="form-input"
+          placeholder="https://…"
+          :aria-describedby="describedBy"
+          :aria-invalid="invalid"
         />
-      </div>
-      <div class="field">
-        <label class="field__label" for="cert-badge">Badge / Logo URL</label>
+      </FormField>
+
+      <ToggleSwitch v-model="editor.form.is_published" label="Published (visible to visitors)" />
+
+      <MediaUploader
+        v-model="editor.form.badge"
+        collection="certifications"
+        label="Badge / certificate image"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        :error="fieldError('badge')"
+      />
+      <FormField
+        v-if="!editor.form.badge"
+        v-slot="{ id, describedBy, invalid }"
+        label="…or badge image URL"
+        optional
+        :error="fieldError('badge_url')"
+      >
         <input
-          id="cert-badge"
-          v-model="editor.form.badge_url"
+          :id="id"
+          v-model.trim="editor.form.badge_url"
           type="url"
-          class="field__input"
-          placeholder="https://..."
+          class="form-input"
+          placeholder="https://…"
+          :aria-describedby="describedBy"
+          :aria-invalid="invalid"
         />
-      </div>
+      </FormField>
 
       <template #actions>
         <button type="button" class="btn-ghost" @click="closeEditor">Cancel</button>
         <button type="button" class="btn-primary" :disabled="editor.saving" @click="save">
-          {{ editor.saving ? 'Saving...' : editor.isEdit ? 'Save Changes' : 'Add Certification' }}
+          {{ editor.saving ? 'Saving…' : editor.isEdit ? 'Save changes' : 'Add certification' }}
         </button>
       </template>
     </AdminModal>
-
-    <ConfirmDeleteDialog
-      :open="deletion.open"
-      item-type="Certification"
-      :item-name="deleteName"
-      :deleting="deletion.deleting"
-      @cancel="cancelDelete"
-      @confirm="confirmDelete"
-    />
   </section>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
-import { useCertificationsStore } from '@/stores/content'
-import { useCrudEditor, requiredFields } from '@/composables/useCrudEditor'
+import { computed, onMounted, ref } from 'vue'
 import AdminModal from '@/components/admin/AdminModal.vue'
-import ConfirmDeleteDialog from '@/components/admin/ConfirmDeleteDialog.vue'
+import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
+import FormField from '@/components/common/FormField.vue'
+import MediaUploader from '@/components/admin/MediaUploader.vue'
+import SortableList from '@/components/admin/SortableList.vue'
+import ToggleSwitch from '@/components/admin/ToggleSwitch.vue'
+import SkeletonBlock from '@/components/common/SkeletonBlock.vue'
+import StateMessage from '@/components/common/StateMessage.vue'
+import { useCrudEditor, requiredFields } from '@/composables/useCrudEditor'
+import { useUndoableDelete } from '@/composables/useUndoableDelete'
+import { useAdminCertificationsStore } from '@/stores/content'
+import { useToastStore } from '@/stores/toast'
+import { urlFields } from '@/utils/validation'
 
-const store = useCertificationsStore()
+const store = useAdminCertificationsStore()
+const toast = useToastStore()
+const search = ref('')
 
-const {
-  editor,
-  openCreate,
-  openEdit,
-  closeEditor,
-  save,
-  deletion,
-  deleteName,
-  askDelete,
-  cancelDelete,
-  confirmDelete,
-} = useCrudEditor(store, {
-  label: 'Certification',
-  emptyForm: { title: '', issuer: '', date: '', credential_url: '', badge_url: '' },
-  validate: (form) => requiredFields(form, { title: 'Title' }),
+const visible = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  return q
+    ? store.items.filter((c) => `${c.title} ${c.issuer ?? ''}`.toLowerCase().includes(q))
+    : store.items
 })
+
+/** Uploaded badge first, then a pasted badge URL */
+const badgeUrl = (cert) => cert.badge?.url || cert.badge_url
+
+const { editor, isDirty, fieldError, openCreate, openEdit, closeEditor, save } = useCrudEditor(
+  store,
+  {
+    label: 'Certification',
+    emptyForm: {
+      title: '',
+      issuer: '',
+      date: '',
+      credential_url: '',
+      badge_url: '',
+      is_published: true,
+      badge: null, // uploaded badge image (media item JSON) — takes priority over badge_url
+    },
+    validate: (form) => ({
+      ...requiredFields(form, { title: 'Title' }),
+      ...urlFields(form, { credential_url: 'Credential URL', badge_url: 'Badge image URL' }),
+    }),
+  },
+)
+
+const { deleteWithUndo } = useUndoableDelete(store, { label: 'Certification' })
+
+async function togglePublished(cert) {
+  try {
+    await store.patch(cert.id, { is_published: !cert.is_published })
+  } catch (err) {
+    toast.error(`Couldn't update: ${err.message}`)
+  }
+}
+
+async function saveOrder(ids) {
+  try {
+    await store.reorder(ids)
+    toast.success('Order saved')
+  } catch (err) {
+    toast.error(`Couldn't save order: ${err.message}`)
+  }
+}
 
 onMounted(() => store.load())
 </script>

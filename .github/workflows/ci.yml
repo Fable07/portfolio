@@ -1,0 +1,50 @@
+# CI — runs on every push and pull request.
+#
+# It runs the same checks as `npm run ci` locally:
+#   lint:check   oxlint + eslint WITHOUT --fix (CI must not rewrite files)
+#   format:check prettier in check mode
+#   test         vitest unit tests
+#   build        production build, so a broken import fails here and not on deploy
+#
+# Branches: `dev` is where work happens, `main` is what is deployed.
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  frontend:
+    name: Lint, test and build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # `npm ci` installs exactly what package-lock.json pins
+      - run: npm ci
+
+      - run: npm run lint:check
+
+      - run: npm run format:check
+
+      - run: npm test
+
+      # The API URL only matters at build time; a placeholder is enough for CI
+      - run: npm run build
+        env:
+          VITE_API_URL: /api
+
+      # Keeps the built site for inspection (and for a manual deploy if needed)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 7

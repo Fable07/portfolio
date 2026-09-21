@@ -1,91 +1,115 @@
 <!--
   ResumeView — /resume
-  Embedded resume PDF + download button, then the Education & Experience timeline.
+  Resume PDF (embedded on large screens, open/download buttons everywhere) and the
+  Education & Experience timeline.
 -->
 <template>
-  <section id="resume" class="resume section">
-    <div class="container">
-      <h2>Resume</h2>
+  <PageSection title="Resume" eyebrow="Experience" description="My resume and the path so far.">
+    <template #actions>
+      <template v-if="pdfUrl">
+        <a :href="pdfUrl" target="_blank" rel="noopener" class="btn-primary">Open PDF ↗</a>
+        <a :href="pdfUrl" download class="btn-secondary">Download</a>
+      </template>
+    </template>
 
-      <!-- ── PDF ── -->
-      <LoadingDots v-if="resume.isLoading" />
-
-      <div v-else-if="pdfUrl" class="resume-content">
-        <iframe
-          :src="pdfUrl"
-          title="Resume PDF"
-          class="h-[700px] w-full rounded-lg border-0"
-        ></iframe>
-        <a class="btn self-start" :href="pdfUrl" target="_blank" rel="noopener">
-          Download Resume (PDF)
-        </a>
-      </div>
-
-      <!-- ── Timeline ── -->
-      <div class="timeline-section">
-        <h3 class="timeline-heading">Education & Experience</h3>
-
-        <LoadingDots v-if="timeline.isLoading" />
-
-        <StateMessage
-          v-else-if="timeline.status === 'error'"
-          type="error"
-          message="Couldn't load the timeline."
-          retry
-          @retry="timeline.load({ force: true })"
-        />
-
-        <StateMessage
-          v-else-if="timeline.items.length === 0"
-          message="No timeline entries added yet."
-        />
-
-        <ol v-else class="timeline m-0 list-none p-0">
-          <li
-            v-for="entry in timeline.items"
-            :key="entry.id"
-            class="timeline__item"
-            :class="isEducation(entry) ? 'timeline__item--edu' : 'timeline__item--work'"
-          >
-            <!-- Icon dot + connecting line -->
-            <div class="timeline__dot-wrap" aria-hidden="true">
-              <div class="timeline__dot">{{ isEducation(entry) ? '🎓' : '💼' }}</div>
-              <div class="timeline__line"></div>
-            </div>
-
-            <div class="timeline__card">
-              <span
-                class="timeline__badge"
-                :class="isEducation(entry) ? 'badge--edu' : 'badge--work'"
-              >
-                {{ isEducation(entry) ? 'Education' : 'Work Experience' }}
-              </span>
-
-              <h4 class="timeline__title">{{ entry.title }}</h4>
-              <p class="timeline__institution">{{ entry.institution }}</p>
-
-              <div class="timeline__meta">
-                <span class="timeline__date">
-                  📅 {{ entry.start_date }} — {{ entry.end_date || 'Present' }}
-                </span>
-                <span v-if="entry.location" class="timeline__location"
-                  >📍 {{ entry.location }}</span
-                >
-              </div>
-
-              <p v-if="entry.description" class="timeline__desc">{{ entry.description }}</p>
-            </div>
-          </li>
-        </ol>
-      </div>
+    <!-- ── PDF ── -->
+    <SkeletonBlock v-if="resume.isLoading" class="mb-10 h-[420px] w-full" />
+    <div v-else-if="pdfUrl" class="mb-10">
+      <!-- Mobile browsers render PDFs in iframes poorly, so the embed is desktop-only -->
+      <iframe
+        :src="pdfUrl"
+        title="Resume PDF"
+        class="hidden h-[78vh] max-h-[900px] w-full rounded-xl border border-line bg-white lg:block"
+        loading="lazy"
+      ></iframe>
+      <a
+        :href="pdfUrl"
+        target="_blank"
+        rel="noopener"
+        class="flex items-center gap-4 rounded-xl border border-line bg-surface p-4 no-underline lg:hidden"
+      >
+        <span class="text-3xl" aria-hidden="true">📄</span>
+        <span>
+          <span class="block font-semibold text-heading">View resume (PDF)</span>
+          <span class="block text-sm">Opens in your browser's PDF viewer</span>
+        </span>
+      </a>
     </div>
-  </section>
+
+    <!-- ── Timeline ── -->
+    <section aria-labelledby="timeline-heading">
+      <div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <h2 id="timeline-heading" class="m-0 text-xl font-bold text-heading">
+          Education & experience
+        </h2>
+        <RouterLink
+          :to="{ name: 'journey' }"
+          class="text-sm font-semibold text-accent no-underline hover:underline"
+        >
+          See the full journey →
+        </RouterLink>
+      </div>
+
+      <div v-if="timeline.isLoading" class="space-y-4" aria-busy="true">
+        <SkeletonBlock v-for="n in 2" :key="n" class="h-28 w-full" />
+      </div>
+
+      <StateMessage
+        v-else-if="timeline.status === 'error'"
+        type="error"
+        message="Couldn't load the timeline."
+        retry
+        @retry="timeline.load({ force: true })"
+      />
+
+      <StateMessage
+        v-else-if="timeline.items.length === 0"
+        message="No timeline entries added yet."
+      />
+
+      <ol v-else class="relative m-0 list-none space-y-5 border-l-2 border-line p-0 pl-7 sm:pl-9">
+        <li v-for="entry in timeline.items" :key="entry.id" class="relative">
+          <!-- Dot on the vertical line -->
+          <span
+            class="absolute top-3 -left-[calc(1.75rem+1px)] flex size-9 -translate-x-1/2 items-center justify-center rounded-full border-2 bg-card text-base sm:-left-[calc(2.25rem+1px)]"
+            :class="isEducation(entry) ? 'border-sky-400/50' : 'border-accent/50'"
+            aria-hidden="true"
+          >
+            {{ isEducation(entry) ? '🎓' : '💼' }}
+          </span>
+
+          <article
+            class="rounded-xl border border-line bg-surface p-4 transition-colors hover:border-accent/40 sm:p-5"
+          >
+            <span
+              class="inline-block rounded-full px-2 py-0.5 text-[0.7rem] font-bold tracking-wide uppercase"
+              :class="
+                isEducation(entry) ? 'bg-sky-400/12 text-sky-400' : 'bg-accent/12 text-accent'
+              "
+            >
+              {{ isEducation(entry) ? 'Education' : 'Work experience' }}
+            </span>
+            <h3 class="m-0 mt-2 text-base font-bold text-heading">{{ entry.title }}</h3>
+            <p class="m-0 mt-0.5 text-sm font-medium text-accent">{{ entry.institution }}</p>
+            <p class="m-0 mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+              <span>📅 {{ entry.start_date }} — {{ entry.end_date || 'Present' }}</span>
+              <span v-if="entry.location">📍 {{ entry.location }}</span>
+            </p>
+            <p v-if="entry.description" class="m-0 mt-3 text-sm leading-relaxed">
+              {{ entry.description }}
+            </p>
+          </article>
+        </li>
+      </ol>
+    </section>
+  </PageSection>
 </template>
 
 <script setup>
 import { computed, onMounted } from 'vue'
 import { useResumeStore, useTimelineStore } from '@/stores/content'
-import LoadingDots from '@/components/common/LoadingDots.vue'
+import PageSection from '@/components/common/PageSection.vue'
+import SkeletonBlock from '@/components/common/SkeletonBlock.vue'
 import StateMessage from '@/components/common/StateMessage.vue'
 
 const resume = useResumeStore()
@@ -102,148 +126,3 @@ onMounted(() => {
   timeline.load()
 })
 </script>
-
-<style scoped>
-/* ── PDF ── */
-.resume-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-/* ── Timeline ── */
-.timeline-section {
-  margin-top: 2rem;
-}
-.timeline-heading {
-  font-size: 1.1rem;
-  color: var(--accent);
-  margin: 0 0 1.5rem 0;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-}
-.timeline {
-  display: flex;
-  flex-direction: column;
-}
-.timeline__item {
-  display: flex;
-  gap: 16px;
-  position: relative;
-}
-
-/* Dot and vertical line */
-.timeline__dot-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex-shrink: 0;
-}
-.timeline__dot {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  z-index: 1;
-  flex-shrink: 0;
-  border: 2px solid rgba(124, 219, 182, 0.2);
-  background: var(--card);
-}
-.timeline__item--edu .timeline__dot {
-  border-color: rgba(99, 179, 237, 0.4);
-  background: rgba(99, 179, 237, 0.08);
-}
-.timeline__item--work .timeline__dot {
-  border-color: rgba(124, 219, 182, 0.4);
-  background: rgba(124, 219, 182, 0.08);
-}
-.timeline__line {
-  width: 2px;
-  flex: 1;
-  background: linear-gradient(to bottom, rgba(124, 219, 182, 0.2), transparent);
-  margin-top: 4px;
-  min-height: 24px;
-}
-.timeline__item:last-child .timeline__line {
-  display: none;
-}
-
-/* Card */
-.timeline__card {
-  flex: 1;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-  margin-bottom: 16px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.timeline__card:hover {
-  border-color: rgba(124, 219, 182, 0.2);
-  background: linear-gradient(135deg, rgba(124, 219, 182, 0.04), rgba(255, 255, 255, 0.02));
-  transform: translateX(4px);
-}
-.timeline__badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 20px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
-}
-.badge--edu {
-  background: rgba(99, 179, 237, 0.12);
-  color: #63b3ed;
-}
-.badge--work {
-  background: rgba(124, 219, 182, 0.12);
-  color: var(--accent);
-}
-.timeline__title {
-  margin: 0 0 4px 0;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #e2f5ef;
-  line-height: 1.3;
-}
-.timeline__institution {
-  margin: 0 0 8px 0;
-  font-size: 0.85rem;
-  color: var(--accent);
-  font-weight: 500;
-}
-.timeline__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-.timeline__date,
-.timeline__location {
-  font-size: 0.78rem;
-  color: var(--muted);
-}
-.timeline__desc {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--muted);
-  line-height: 1.6;
-}
-
-@media (max-width: 640px) {
-  .timeline__card {
-    padding: 12px 14px;
-  }
-  .timeline__dot {
-    width: 32px;
-    height: 32px;
-    font-size: 0.9rem;
-  }
-}
-</style>

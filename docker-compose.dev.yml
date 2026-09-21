@@ -1,0 +1,46 @@
+# Development stack — frontend + API, both with hot reload.
+#
+#   docker compose -f docker-compose.dev.yml up --build
+#   → site  http://localhost:5173
+#   → API   http://localhost:8000/api
+#
+# The API service builds the backend repo, which is expected NEXT TO this one:
+#   Caragay_Portfolio/      (this repo)
+#   portfolio-backend/
+# Both services read the same Supabase database (one database for dev and prod —
+# see DEPLOYMENT.md), so keep migrations additive.
+services:
+  api:
+    build:
+      context: ../portfolio-backend
+      dockerfile: Dockerfile.dev
+    env_file:
+      - ../portfolio-backend/.env
+    environment:
+      # The browser calls the API directly, so CORS must allow the dev origin
+      FRONTEND_URLS: http://localhost:5173,http://127.0.0.1:5173
+    ports:
+      - '8000:8000'
+    volumes:
+      # Live code, but keep the container's vendor/ (installed for Linux)
+      - ../portfolio-backend:/app
+      - backend-vendor:/app/vendor
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      VITE_API_URL: http://localhost:8000/api
+    ports:
+      - '5173:5173'
+    volumes:
+      # Live code, but keep the container's node_modules (installed for Linux)
+      - .:/app
+      - frontend-node-modules:/app/node_modules
+    depends_on:
+      - api
+
+volumes:
+  frontend-node-modules:
+  backend-vendor:

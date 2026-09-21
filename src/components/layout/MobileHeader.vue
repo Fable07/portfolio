@@ -1,26 +1,35 @@
 <!--
-  MobileHeader — fixed top bar with brand, theme toggle and a dropdown menu.
-  Mobile only (hidden at and above the "nav" breakpoint, where AppSidebar shows).
-  The menu closes on link click, route change, or the Escape key.
+  MobileHeader — fixed top bar + slide-out navigation drawer. Mobile only
+  (hidden at and above the "nav" breakpoint, where AppSidebar shows).
+
+  Drawer behaviour (accessible dialog):
+   • keyboard focus is trapped inside while open and returns to the menu button after
+   • closes on Escape, backdrop click, link click or any route change
+   • the page behind it can't scroll
 -->
 <template>
   <header
-    class="fixed inset-x-0 top-0 z-[100] flex items-center justify-between bg-page px-6 py-3 shadow-[0_2px_20px_rgba(0,0,0,0.3)] backdrop-blur-[10px] nav:hidden"
+    class="fixed inset-x-0 top-0 z-[100] flex items-center justify-between gap-2 border-b border-line bg-page/90 px-4 py-2.5 backdrop-blur-md nav:hidden"
   >
-    <RouterLink :to="{ name: 'profile' }" class="text-xl tracking-[0.6px] text-accent no-underline">
+    <RouterLink
+      :to="{ name: 'profile' }"
+      class="text-lg font-bold tracking-[0.5px] text-accent no-underline"
+    >
       My Portfolio
     </RouterLink>
 
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-1.5">
+      <SearchButton compact />
       <ThemeToggle />
       <button
+        ref="menuButton"
         type="button"
-        class="inline-flex cursor-pointer rounded-lg border-0 bg-transparent p-2 text-muted transition-all duration-300 hover:bg-accent/10 hover:text-accent focus-visible:outline-2 focus-visible:outline-accent"
-        :aria-expanded="menuOpen"
-        aria-controls="mobile-menu"
-        @click="menuOpen = !menuOpen"
+        class="flex size-10 cursor-pointer items-center justify-center rounded-xl border border-line bg-surface text-heading"
+        :aria-expanded="open"
+        aria-controls="mobile-drawer"
+        @click="open = true"
       >
-        <span class="sr-only">{{ menuOpen ? 'Close' : 'Open' }} navigation menu</span>
+        <span class="sr-only">Open navigation menu</span>
         <svg width="20" height="12" viewBox="0 0 20 12" fill="none" aria-hidden="true">
           <path
             d="M0 1H20M0 6H20M0 11H20"
@@ -31,42 +40,109 @@
         </svg>
       </button>
     </div>
-
-    <!-- Dropdown menu -->
-    <nav
-      id="mobile-menu"
-      aria-label="Main"
-      class="absolute top-[60px] right-[18px] w-[180px] rounded-xl border border-accent/15 bg-card p-3 shadow-[0_18px_40px_rgba(0,0,0,0.35)] transition-all duration-200"
-      :class="
-        menuOpen
-          ? 'pointer-events-auto translate-y-0 opacity-100'
-          : 'pointer-events-none -translate-y-2 opacity-0'
-      "
-      :inert="!menuOpen"
-    >
-      <NavLinks @navigate="menuOpen = false" />
-    </nav>
   </header>
+
+  <Teleport to="body">
+    <!-- Backdrop -->
+    <Transition
+      enter-active-class="transition-opacity duration-200"
+      leave-active-class="transition-opacity duration-200"
+      enter-from-class="opacity-0"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="open"
+        class="fixed inset-0 z-[1000] bg-black/50 backdrop-blur-[2px] nav:hidden"
+        @click="close"
+      />
+    </Transition>
+
+    <!-- Drawer panel -->
+    <Transition
+      enter-active-class="transition-transform duration-250 ease-out"
+      leave-active-class="transition-transform duration-200 ease-in"
+      enter-from-class="translate-x-full"
+      leave-to-class="translate-x-full"
+    >
+      <div
+        v-if="open"
+        id="mobile-drawer"
+        ref="drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation"
+        class="fixed inset-y-0 right-0 z-[1001] flex w-[min(80vw,300px)] flex-col gap-4 border-l border-line bg-card p-5 shadow-2xl nav:hidden"
+      >
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-accent">Menu</span>
+          <button
+            type="button"
+            class="flex size-9 cursor-pointer items-center justify-center rounded-lg border border-line bg-surface text-heading"
+            aria-label="Close navigation menu"
+            @click="close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <nav aria-label="Main">
+          <NavLinks @navigate="close" />
+        </nav>
+
+        <RouterLink
+          :to="{ name: 'terminal' }"
+          class="flex items-center gap-2 rounded-xl border border-dashed border-accent/40 px-3 py-2.5 font-mono text-sm text-accent no-underline"
+          @click="close"
+        >
+          <span aria-hidden="true">&gt;_</span> terminal mode
+        </RouterLink>
+
+        <div class="mt-auto">
+          <VisitorBadge :count="visitorCount" />
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { onKeyStroke, useScrollLock } from '@vueuse/core'
+import { useFocusTrap } from '@vueuse/integrations/useFocusTrap'
 import NavLinks from './NavLinks.vue'
+import SearchButton from './SearchButton.vue'
 import ThemeToggle from './ThemeToggle.vue'
+import VisitorBadge from './VisitorBadge.vue'
 
-const menuOpen = ref(false)
+defineProps({
+  visitorCount: { type: Number, default: 0 },
+})
+
+const open = ref(false)
+const drawer = ref(null)
+const menuButton = ref(null)
 const route = useRoute()
 
-// Close the menu whenever the page changes (e.g. browser back button)
-watch(
-  () => route.fullPath,
-  () => (menuOpen.value = false),
-)
+const { activate, deactivate } = useFocusTrap(drawer, { immediate: false, allowOutsideClick: true })
+const scrollLock = useScrollLock(document.body)
 
-function onKeydown(event) {
-  if (event.key === 'Escape') menuOpen.value = false
+watch(open, async (isOpen) => {
+  scrollLock.value = isOpen
+  if (isOpen) {
+    await nextTick()
+    activate()
+  } else {
+    deactivate()
+    menuButton.value?.focus() // return focus to where the user was
+  }
+})
+
+function close() {
+  open.value = false
 }
-onMounted(() => document.addEventListener('keydown', onKeydown))
-onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
+
+// Close on page change (e.g. browser back button) and on Escape
+watch(() => route.fullPath, close)
+onKeyStroke('Escape', () => open.value && close())
 </script>

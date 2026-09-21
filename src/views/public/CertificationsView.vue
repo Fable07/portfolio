@@ -1,140 +1,90 @@
 <!-- CertificationsView — /certifications — certificate cards with badge, issuer and credential link -->
 <template>
-  <section id="certifications" class="certifications-section section">
-    <div class="container2">
-      <h2>Certifications</h2>
+  <PageSection
+    title="Certifications"
+    eyebrow="Credentials"
+    description="Courses and certificates I've earned."
+  >
+    <!-- Loading: skeleton cards keep the layout steady -->
+    <ul
+      v-if="store.isLoading"
+      class="m-0 grid list-none gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3"
+      aria-busy="true"
+    >
+      <li v-for="n in 6" :key="n" class="flex gap-3 rounded-xl border border-line p-4">
+        <SkeletonBlock class="size-12 shrink-0" />
+        <div class="flex-1 space-y-2">
+          <SkeletonBlock class="h-4 w-4/5" />
+          <SkeletonBlock class="h-3 w-1/2" />
+        </div>
+      </li>
+    </ul>
 
-      <LoadingDots v-if="store.isLoading" />
+    <StateMessage
+      v-else-if="store.status === 'error'"
+      type="error"
+      message="Couldn't load certifications."
+      retry
+      @retry="store.load({ force: true })"
+    />
 
-      <StateMessage
-        v-else-if="store.status === 'error'"
-        type="error"
-        message="Couldn't load certifications."
-        retry
-        @retry="store.load({ force: true })"
-      />
+    <StateMessage v-else-if="store.items.length === 0" message="No certifications added yet." />
 
-      <StateMessage v-else-if="store.items.length === 0" message="No certifications added yet." />
+    <ul v-else class="m-0 grid list-none gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3">
+      <li
+        v-for="cert in store.items"
+        :key="cert.id"
+        class="flex items-start gap-3 rounded-xl border border-line bg-surface p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/40"
+      >
+        <div
+          class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-accent/8"
+        >
+          <img
+            v-if="badgeUrl(cert) && !brokenBadges.has(cert.id)"
+            :src="badgeUrl(cert)"
+            :alt="cert.badge?.alt || `${cert.issuer || cert.title} badge`"
+            class="size-10 object-contain"
+            loading="lazy"
+            @error="brokenBadges.add(cert.id)"
+          />
+          <span v-else class="text-2xl" aria-hidden="true">🏅</span>
+        </div>
 
-      <ul v-else class="certifications__list">
-        <li v-for="cert in store.items" :key="cert.id" class="certification cert-card">
-          <!-- Badge image, or a medal emoji if there is none / it fails to load -->
-          <div class="cert-card__icon-wrap">
-            <img
-              v-if="cert.badge_url && !brokenBadges.has(cert.id)"
-              :src="cert.badge_url"
-              :alt="`${cert.issuer || cert.title} badge`"
-              class="cert-card__badge"
-              @error="brokenBadges.add(cert.id)"
-            />
-            <span v-else class="cert-card__icon-fallback" aria-hidden="true">🏅</span>
-          </div>
-
-          <div class="cert-card__body">
-            <span class="cert-card__title">{{ cert.title }}</span>
-            <span v-if="cert.issuer" class="cert-card__issuer">{{ cert.issuer }}</span>
-            <span v-if="cert.date" class="cert-card__date">{{ cert.date }}</span>
-            <a
-              v-if="cert.credential_url"
-              :href="cert.credential_url"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="cert-card__link"
-            >
-              View Credential ↗
-            </a>
-          </div>
-        </li>
-      </ul>
-    </div>
-  </section>
+        <div class="min-w-0 flex-1">
+          <h2 class="m-0 text-[0.95rem] leading-snug font-semibold text-heading">
+            {{ cert.title }}
+          </h2>
+          <p v-if="cert.issuer" class="m-0 mt-0.5 text-sm text-accent">{{ cert.issuer }}</p>
+          <p v-if="cert.date" class="m-0 mt-0.5 text-xs">{{ cert.date }}</p>
+          <a
+            v-if="cert.credential_url"
+            :href="cert.credential_url"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="mt-2 inline-block text-xs font-semibold text-accent no-underline hover:underline"
+          >
+            View credential ↗
+          </a>
+        </div>
+      </li>
+    </ul>
+  </PageSection>
 </template>
 
 <script setup>
 import { onMounted, reactive } from 'vue'
 import { useCertificationsStore } from '@/stores/content'
-import LoadingDots from '@/components/common/LoadingDots.vue'
+import PageSection from '@/components/common/PageSection.vue'
+import SkeletonBlock from '@/components/common/SkeletonBlock.vue'
 import StateMessage from '@/components/common/StateMessage.vue'
 
 const store = useCertificationsStore()
 
-// IDs whose badge image failed to load. Tracked here instead of blanking
-// cert.badge_url, so the shared store data isn't modified by the view.
+// IDs whose badge image failed to load (tracked here so shared store data isn't modified)
 const brokenBadges = reactive(new Set())
+
+/** Uploaded badge first, then a pasted badge URL */
+const badgeUrl = (cert) => cert.badge?.url || cert.badge_url
 
 onMounted(() => store.load())
 </script>
-
-<style scoped>
-.cert-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px 16px;
-  background: linear-gradient(135deg, rgba(124, 219, 182, 0.04), rgba(255, 255, 255, 0.02));
-  border: 1px solid rgba(124, 219, 182, 0.1);
-  border-radius: 12px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  list-style: none;
-}
-.cert-card:hover {
-  border-color: rgba(124, 219, 182, 0.3);
-  background: linear-gradient(135deg, rgba(124, 219, 182, 0.08), rgba(255, 255, 255, 0.04));
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-}
-
-.cert-card__icon-wrap {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(124, 219, 182, 0.06);
-  border-radius: 10px;
-}
-.cert-card__badge {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-  border-radius: 6px;
-}
-.cert-card__icon-fallback {
-  font-size: 1.3rem;
-}
-
-.cert-card__body {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-.cert-card__title {
-  color: #e2f5ef;
-  font-weight: 600;
-  font-size: 0.95rem;
-  line-height: 1.3;
-}
-.cert-card__issuer {
-  color: var(--accent);
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-.cert-card__date {
-  color: var(--muted);
-  font-size: 0.78rem;
-}
-.cert-card__link {
-  color: var(--accent);
-  font-size: 0.78rem;
-  text-decoration: none;
-  margin-top: 4px;
-  opacity: 0.8;
-  transition: opacity 0.2s;
-}
-.cert-card__link:hover {
-  opacity: 1;
-  text-decoration: underline;
-}
-</style>

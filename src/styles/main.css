@@ -1,15 +1,16 @@
 /* ==========================================================================
    main.css — global styles
    --------------------------------------------------------------------------
-   Tailwind v4 is loaded WITHOUT Preflight (its CSS reset) so the existing
-   design keeps its look. Layer order decides who wins when rules conflict:
+   Styling is done with Tailwind utility classes in the templates. This file
+   only holds what utilities can't express on their own:
 
-     theme  →  base  →  components  →  utilities   (later wins)
+     1. Tailwind setup (loaded without Preflight, its CSS reset)
+     2. Design tokens — theme colours as CSS variables, mapped to Tailwind names
+     3. Base element styles
+     4. A few reusable custom utilities (@utility), e.g. btn-primary
 
-   • "components" holds the hand-written global classes below (.section, .nav-link…)
-   • "utilities" are Tailwind classes in templates (flex, p-4, text-accent…),
-     so a utility can always override a global class.
-   • <style scoped> blocks inside .vue files are un-layered and win over both.
+   Layer order decides who wins when rules conflict (later wins):
+     theme → base → components → utilities
    ========================================================================== */
 
 @layer theme, base, components, utilities;
@@ -19,58 +20,92 @@
 /* Scan every file under src/ for Tailwind class names */
 @source '../';
 
-/* ── Design tokens ─────────────────────────────────────────────────────────
-   CSS variables switch with the theme ([data-theme]); the @theme block maps
-   them to Tailwind colors, e.g. bg-card, text-muted, border-accent/20.
-   "inline" makes utilities read the variable live, so theme switching works. */
-:root {
-  --bg: #361111;
-  --card: #0f1724;
-  --muted: #9aa4b2;
-  --accent: #7cdbb6;
-  --accent-2: #49c19b;
-  --glass: rgba(255, 255, 255, 0.04);
-  --glass-2: rgba(255, 255, 255, 0.08);
+/* ── 2. Design tokens ──────────────────────────────────────────────────────
+   Colours switch with <html data-theme="dark|light">. The @theme block maps them to
+   Tailwind colour names, so you write bg-card, text-heading, border-line, text-accent/80…
+   "inline" makes utilities read the variable live, so theme switching needs no rebuild.
+   Any element can force a theme for its subtree: <div data-theme="dark"> (the admin does). */
+:root,
+[data-theme='dark'] {
+  --bg: #361111; /* page background */
+  --card: #0f1724; /* main card surface */
+  --surface: rgba(255, 255, 255, 0.03); /* inner panels inside cards */
+  --line: rgba(255, 255, 255, 0.08); /* borders & dividers */
+  --heading: #e2f5ef; /* strong text: titles */
+  --muted: #9aa4b2; /* secondary text */
+  --accent: #7cdbb6; /* brand colour */
+  --accent-2: #49c19b; /* gradient end */
+  --glow: rgba(124, 219, 182, 0.3); /* accent shadows */
 }
 
 [data-theme='light'] {
   --bg: #e8f0f7;
   --card: #ffffff;
+  --surface: rgba(15, 23, 42, 0.03);
+  --line: rgba(15, 23, 42, 0.1);
+  --heading: #10231f;
   --muted: #4a5568;
   --accent: #0d9488;
   --accent-2: #14b8a6;
-  --glass: rgba(0, 0, 0, 0.04);
-  --glass-2: rgba(0, 0, 0, 0.08);
+  --glow: rgba(13, 148, 136, 0.28);
 }
 
 @theme inline {
   --color-page: var(--bg);
   --color-card: var(--card);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-heading: var(--heading);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-accent-2: var(--accent-2);
-  --color-ink: #01221a; /* dark text on accent-colored buttons */
+  --color-glow: var(--glow);
+  --color-ink: #01221a; /* dark text on accent-coloured buttons */
+  --color-terminal: #0a0f16; /* terminal mode background */
+
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', Consolas, 'Courier New', monospace;
 
   /* "nav" breakpoint: sidebar shows at ≥ 881px, mobile header below it.
      Use nav:… for desktop-only and max-nav:… for mobile-only classes. */
   --breakpoint-nav: 55.0625rem;
+
+  --animate-blink: blink 1s step-end infinite;
+  --animate-dot-bounce: dot-bounce 1.2s ease-in-out infinite both;
 }
 
-/* ── Base element styles ─────────────────────────────────────────────────── */
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes dot-bounce {
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ── 3. Base element styles ────────────────────────────────────────────── */
 @layer base {
   * {
     box-sizing: border-box;
   }
-  html,
-  body,
-  #app {
-    height: 100%;
-  }
   html {
     scroll-behavior: smooth;
+    color-scheme: dark;
+  }
+  [data-theme='light'] {
+    color-scheme: light;
   }
   body {
     margin: 0;
+    padding: 15px;
     font-family:
       Inter,
       ui-sans-serif,
@@ -81,388 +116,212 @@
       'Helvetica Neue',
       Arial;
     background: var(--bg);
+    color: var(--muted);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    padding: 15px;
   }
-  section[id] {
-    scroll-margin-top: 100px;
+  img,
+  video {
+    max-width: 100%;
   }
-  @media (min-width: 768px) {
-    section[id] {
-      scroll-margin-top: 120px;
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
     }
   }
 }
 
-/* ── Shared global classes ───────────────────────────────────────────────── */
-@layer components {
-  /* .section — the card every public page sits in */
-  .section {
-    background: var(--card);
-    padding: 1.25rem;
-    border-radius: 14px;
-    box-shadow: 0 6px 30px rgba(2, 6, 12, 0.6);
-    backdrop-filter: blur(6px);
-    position: relative;
-  }
-  @media (min-width: 480px) {
-    .section {
-      padding: 1.75rem;
-    }
-  }
-  @media (min-width: 768px) {
-    .section {
-      padding: 2rem;
-    }
-  }
-  @media (min-width: 1024px) {
-    .section {
-      padding: 2.2rem;
-    }
-  }
+/* ── 4. Reusable utilities ─────────────────────────────────────────────────
+   Custom utilities work like Tailwind classes (and accept variants: sm:btn-primary).
+   Use them for patterns repeated across many templates. */
 
-  .container,
-  .container2 {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0;
-  }
-  .container2 {
-    color: var(--accent);
-  }
-
-  /* Page headings inside sections */
-  .about h2,
-  .projects-section h2,
-  .certifications-section h2,
-  .resume h2,
-  .hobbies h2 {
-    font-size: 1.25rem;
-    margin: 0 0 12px 0;
-    color: var(--accent);
-  }
-  @media (min-width: 768px) {
-    .about h2,
-    .projects-section h2,
-    .certifications-section h2,
-    .resume h2,
-    .hobbies h2 {
-      font-size: 1.5rem;
-    }
-  }
-  .about p,
-  .hobbies p {
-    color: var(--muted);
-    line-height: 1.6;
-    font-size: 0.95rem;
-  }
-
-  /* .btn — primary call-to-action link (e.g. Download Resume) */
-  .btn {
-    display: inline-block;
-    padding: 10px 16px;
-    border-radius: 10px;
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
-    color: #022;
-    text-decoration: none;
-    font-weight: 700;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-  }
-
-  /* .nav-link — sidebar & mobile menu item; .active marks the current page */
-  .nav-link {
-    display: block;
-    appearance: none;
-    background: transparent;
-    border: 0;
-    color: var(--muted);
-    font-weight: 600;
-    text-decoration: none;
-    padding: 10px 14px;
-    border-radius: 12px;
-    cursor: pointer;
-    position: relative;
-    outline: none;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .nav-link::after {
-    content: '';
-    position: absolute;
-    left: 14px;
-    right: 14px;
-    height: 3px;
-    bottom: 8px;
-    background: transparent;
-    border-radius: 4px;
-    transform: scaleX(0);
-    transform-origin: left center;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .nav-link:hover,
-  .nav-link:focus-visible {
-    color: #fff;
-    background: rgba(124, 219, 182, 0.1);
+/* Main call-to-action: <a class="btn-primary">Download</a> */
+@utility btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.1rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  color: #01221a;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 8px 24px var(--glow);
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+  &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(124, 219, 182, 0.15);
+    box-shadow: 0 12px 28px var(--glow);
   }
-  .nav-link.active {
-    color: #01221a;
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(124, 219, 182, 0.3);
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
   }
-  .nav-link.active::after {
-    transform: scaleX(1);
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.18));
-  }
-  [data-theme='light'] .nav-link:hover,
-  [data-theme='light'] .nav-link:focus-visible {
-    color: #0d9488;
-    background: rgba(13, 148, 136, 0.08);
-    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.12);
-  }
-  [data-theme='light'] .nav-link.active {
-    color: #ffffff;
-    box-shadow: 0 8px 20px rgba(13, 148, 136, 0.3);
-  }
+}
 
-  /* ── Profile page ── */
-  .profile__inner {
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-  }
-  @media (min-width: 768px) {
-    .profile__inner {
-      gap: 18px;
-    }
-  }
-  .avatar {
-    width: 150px;
-    height: 150px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, var(--glass), var(--glass-2));
-    padding: 6px;
-    object-fit: cover;
-    box-shadow: 0 8px 30px rgba(2, 6, 12, 0.6);
-    flex-shrink: 0;
-  }
-  @media (min-width: 768px) {
-    .avatar {
-      width: 180px;
-      height: 180px;
-    }
-  }
-  .info {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-  }
-  .info h2 {
-    margin: 0;
-    font-size: 1.25rem;
+/* Secondary action: outlined */
+@utility btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--heading);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    color 0.2s,
+    transform 0.2s;
+  &:hover {
+    border-color: var(--accent);
     color: var(--accent);
-    line-height: 1.4;
+    transform: translateY(-2px);
   }
-  .role {
-    color: var(--muted);
-    margin: 6px 0;
-    font-size: 0.95rem;
-  }
-  .info ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-  .info li {
-    margin: 6px 0;
-  }
-  .info strong {
-    display: block;
-    color: var(--accent);
-    font-size: 0.95rem;
-    margin-bottom: 8px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .horizontal-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-  .horizontal-list li {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
-    background: rgba(124, 219, 182, 0.05);
-    border-radius: 8px;
-    font-size: 0.9rem;
-    color: var(--muted);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    white-space: nowrap;
-  }
-  .horizontal-list li:hover {
-    background: rgba(124, 219, 182, 0.15);
-    color: #fff;
+}
+
+/* Small rounded label: <span class="chip">Vue</span> */
+@utility chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.6rem;
+  border: 1px solid color-mix(in oklab, var(--accent) 22%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--accent) 9%, transparent);
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* Keyboard key hint: <kbd class="kbd">Ctrl</kbd> */
+@utility kbd {
+  display: inline-flex;
+  align-items: center;
+  min-width: 1.4em;
+  justify-content: center;
+  padding: 0 0.35em;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 0.35rem;
+  background: var(--surface);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  line-height: 1.6;
+}
+
+/* Destructive action: <button class="btn-danger">Delete</button> */
+@utility btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.1rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: transform 0.2s;
+  &:hover {
     transform: translateY(-1px);
   }
-  [data-theme='light'] .horizontal-list li {
-    background: rgba(13, 148, 136, 0.06);
-    color: #4a5568;
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
   }
-  [data-theme='light'] .horizontal-list li:hover {
-    background: rgba(13, 148, 136, 0.14);
-    color: #0d9488;
-  }
-  .small-icon {
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
-    flex-shrink: 0;
-  }
-  .links,
-  .links a {
-    color: var(--accent);
-    margin-right: 12px;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 18px;
-    text-align: center;
-  }
-  .socmed a {
-    display: inline-flex;
-    padding: 8px;
-    border-radius: 10px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-  }
-  .socmed a:hover,
-  .socmed a:focus-visible {
-    color: #fff;
-    background: rgba(124, 219, 182, 0.1);
-    transform: translateY(-4px);
-    box-shadow: 0 6px 16px rgba(124, 219, 182, 0.2);
-  }
-  .social-icon {
-    width: 32px;
-    height: 32px;
-    object-fit: contain;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .socmed a:hover .social-icon,
-  .socmed a:focus-visible .social-icon {
-    filter: brightness(1.2) drop-shadow(0 0 6px rgba(124, 219, 182, 0.4));
-  }
+}
 
-  /* ── Projects & certifications grids ── */
-  .projects__list,
-  .certifications__list {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    padding: 0;
-    margin: 0;
+/* Low-emphasis button (icon buttons, Cancel): <button class="btn-ghost">Cancel</button> */
+@utility btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid transparent;
+  border-radius: 0.65rem;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  &:hover {
+    background: var(--surface);
+    color: var(--heading);
   }
-  .certifications__list {
-    gap: 12px;
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
-  .proj {
-    background-color: white;
-    padding: 1.5rem;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition:
-      box-shadow 300ms ease,
-      transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .proj:hover {
-    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
-    transform: scale(1.03);
-  }
-  @media (prefers-color-scheme: dark) {
-    .proj {
-      background-color: #1f2937;
-      color: #e5e7eb;
-    }
-  }
-  .certification {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
-    padding: 12px;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.03);
-  }
+}
 
-  /* ── Small screens ── */
-  @media (max-width: 640px) {
-    .profile__inner {
-      flex-direction: column;
-      gap: 12px;
-      align-items: center;
-    }
-    .avatar {
-      width: 120px;
-      height: 120px;
-    }
-    .info {
-      width: 100%;
-      text-align: center;
-    }
-    .info h2 {
-      font-size: 1rem;
-    }
-    .role {
-      font-size: 0.85rem;
-    }
-    .horizontal-list {
-      justify-content: center;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .horizontal-list li {
-      font-size: 0.8rem;
-    }
-    .links {
-      text-align: center;
-      font-size: 16px;
-    }
-    .socmed a:hover,
-    .socmed a:focus-visible {
-      transform: scale(1.1);
-    }
-    .projects__list,
-    .certifications__list {
-      grid-template-columns: 1fr;
-    }
+/* Text inputs, textareas and selects: <input class="form-input" /> */
+@utility form-input {
+  display: block;
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  background: var(--surface);
+  color: var(--heading);
+  font: inherit;
+  font-size: 0.9rem;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+  &::placeholder {
+    color: color-mix(in oklab, var(--muted) 70%, transparent);
   }
-  @media (min-width: 641px) and (max-width: 880px) {
-    .profile__inner {
-      flex-direction: column;
-      gap: 16px;
-    }
-    .avatar {
-      width: 140px;
-      height: 140px;
-    }
-    .projects__list,
-    .certifications__list {
-      grid-template-columns: repeat(2, 1fr);
-    }
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent);
   }
+  &[aria-invalid='true'] {
+    border-color: #f87171;
+  }
+}
 
-  @media (prefers-reduced-motion: no-preference) {
-    .small-icon {
-      width: 45px;
-      height: 45px;
-      vertical-align: middle;
-      margin-right: 8px;
-    }
-    .horizontal-list {
-      gap: 40px;
-      margin: 0 auto;
-    }
+/* The admin is dark-only: keep the page background dark behind it */
+@layer base {
+  html:has([data-admin]) body {
+    background: #0b1018;
   }
 }

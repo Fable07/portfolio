@@ -1,0 +1,51 @@
+# Production stack — what runs on the live server from the `main` branch.
+#
+#   API_URL=https://api.yourdomain.com/api docker compose -f docker-compose.prod.yml up -d --build
+#   → site  http://<server>:8080   (put Caddy/nginx/Cloudflare in front for HTTPS)
+#   → API   http://<server>:8001
+#
+# Differences from the dev stack:
+#   · the frontend is built once and served by nginx (no Node, no source in the image)
+#   · no source volumes — the image is the artifact
+#   · uploaded media lives in a NAMED VOLUME, otherwise every redeploy would delete it
+#     (switch MEDIA_DRIVER to cloudinary and this stops mattering)
+services:
+  api:
+    build:
+      context: ../portfolio-backend
+      # The production backend image runs nginx + php-fpm under supervisord
+      dockerfile: Dockerfile
+    env_file:
+      - ../portfolio-backend/.env.production
+    restart: unless-stopped
+    ports:
+      - '8001:80'
+    volumes:
+      # Uploaded images/videos/PDFs must survive a rebuild
+      - media:/app/storage/app/public
+    healthcheck:
+      test: ['CMD', 'php', '-r', 'exit(@file_get_contents("http://127.0.0.1/up") ? 0 : 1);']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Baked into the bundle at build time — must be the PUBLIC API URL
+        VITE_API_URL: ${API_URL:-/api}
+    restart: unless-stopped
+    ports:
+      - '8080:80'
+    depends_on:
+      - api
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1/healthz']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  media:

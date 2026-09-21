@@ -13,16 +13,24 @@
 export const publicNav = [
   { name: 'profile', label: 'Profile', exact: true },
   { name: 'about', label: 'About' },
+  { name: 'skills', label: 'Skills' },
   { name: 'certifications', label: 'Certifications' },
   { name: 'resume', label: 'Resume' },
   { name: 'projects', label: 'Projects' },
+  { name: 'journey', label: 'Journey' },
   { name: 'hobbies', label: 'Hobbies' },
+  { name: 'contact', label: 'Contact' },
 ]
 
+/** Admin sidebar (AdminLayout). `exact` works like publicNav: only active on that exact URL. */
 export const adminNav = [
-  { name: 'admin-certifications', label: 'Certifications', icon: '🏅' },
+  { name: 'admin-dashboard', label: 'Dashboard', icon: '📊', exact: true },
+  { name: 'admin-profile', label: 'Profile', icon: '👤' },
   { name: 'admin-projects', label: 'Projects', icon: '🚀' },
-  { name: 'admin-resume', label: 'Resume', icon: '📄' },
+  { name: 'admin-certifications', label: 'Certifications', icon: '🏅' },
   { name: 'admin-timeline', label: 'Timeline', icon: '🕐' },
   { name: 'admin-hobbies', label: 'Hobbies', icon: '🎯' },
+  { name: 'admin-resume', label: 'Resume', icon: '📄' },
+  // badge: name of a store field holding a count (shown next to the item)
+  { name: 'admin-messages', label: 'Inbox', icon: '✉️', badge: 'unread' },
 ]

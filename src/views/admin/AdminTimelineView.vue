@@ -1,56 +1,64 @@
-<!-- AdminTimelineView — /admin/timeline — education & work entries shown on the Resume page -->
+<!--
+  AdminTimelineView — /admin/timeline
+  Education & work entries shown on /resume. Drag to reorder, add/edit, delete with Undo.
+-->
 <template>
   <section>
-    <div class="admin-toolbar">
-      <button type="button" class="btn-primary btn--icon" @click="openCreate">
-        <span aria-hidden="true">＋</span> Add Entry
+    <AdminPageHeader
+      v-model:search="search"
+      title="Timeline"
+      description="Education and work experience shown on the Resume page. Drag to reorder."
+      search-placeholder="Search entries"
+    >
+      <button type="button" class="btn-primary" @click="openCreate">＋ Add entry</button>
+    </AdminPageHeader>
+
+    <div v-if="store.isLoading" class="grid gap-2" aria-busy="true">
+      <SkeletonBlock v-for="n in 3" :key="n" class="h-16 w-full rounded-xl" />
+    </div>
+
+    <StateMessage
+      v-else-if="store.status === 'error'"
+      type="error"
+      :message="`Couldn't load the timeline: ${store.error?.message}`"
+      retry
+      @retry="store.load({ force: true })"
+    />
+
+    <div
+      v-else-if="!store.items.length"
+      class="rounded-2xl border border-dashed border-line p-10 text-center"
+    >
+      <p class="m-0 text-3xl" aria-hidden="true">🕐</p>
+      <p class="m-0 mt-2">No timeline entries yet.</p>
+      <button type="button" class="btn-primary mt-4" @click="openCreate">
+        Add education or work experience
       </button>
-      <span class="cert-count">
-        {{ store.items.length }} entr{{ store.items.length !== 1 ? 'ies' : 'y' }}
-      </span>
     </div>
 
-    <div v-if="store.isLoading" class="admin-empty"><p>Loading...</p></div>
-
-    <div v-else-if="store.status === 'error'" class="admin-empty">
-      <p>Couldn't load the timeline: {{ store.error?.message }}</p>
-      <button type="button" class="btn-ghost" @click="store.load({ force: true })">
-        Try again
-      </button>
-    </div>
-
-    <div v-else-if="store.items.length === 0" class="admin-empty">
-      <div class="admin-empty__icon" aria-hidden="true">🕐</div>
-      <p>No timeline entries yet. Add your education or work experience!</p>
-    </div>
-
-    <div v-else class="cert-table-wrap">
-      <table class="cert-table">
-        <thead>
-          <tr>
-            <th>Type</th>
-            <th>Title</th>
-            <th>Institution</th>
-            <th>Period</th>
-            <th>Location</th>
-            <th class="th-actions">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="entry in store.items" :key="entry.id" class="cert-row">
-            <td>
-              <span :class="entry.type === 'education' ? 'badge-edu' : 'badge-work'">
-                {{ entry.type === 'education' ? '🎓 Education' : '💼 Work' }}
-              </span>
-            </td>
-            <td class="td-title">{{ entry.title }}</td>
-            <td class="td-muted">{{ entry.institution }}</td>
-            <td class="td-muted">{{ entry.start_date }} — {{ entry.end_date || 'Present' }}</td>
-            <td class="td-muted">{{ entry.location || '—' }}</td>
-            <td class="td-actions">
+    <template v-else>
+      <p v-if="search" class="m-0 mb-2 text-xs">
+        {{ visible.length }} of {{ store.items.length }} shown · clear the search to reorder
+      </p>
+      <SortableList :items="visible" :disabled="!!search" @reorder="saveOrder">
+        <template #default="{ item: entry }">
+          <div class="flex flex-wrap items-center gap-3">
+            <span
+              class="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface text-lg"
+              aria-hidden="true"
+            >
+              {{ entry.type === 'education' ? '🎓' : '💼' }}
+            </span>
+            <div class="min-w-0 flex-1 basis-40">
+              <p class="m-0 truncate font-semibold text-heading">{{ entry.title }}</p>
+              <p class="m-0 truncate text-xs">
+                {{ entry.institution }} · {{ entry.start_date }} — {{ entry.end_date || 'Present' }}
+              </p>
+            </div>
+            <div class="flex items-center gap-1">
               <button
                 type="button"
-                class="btn-edit"
+                class="btn-ghost px-2.5!"
                 :aria-label="`Edit ${entry.title}`"
                 @click="openEdit(entry)"
               >
@@ -58,144 +66,221 @@
               </button>
               <button
                 type="button"
-                class="btn-delete"
+                class="btn-ghost px-2.5! hover:text-red-400!"
                 :aria-label="`Delete ${entry.title}`"
-                @click="askDelete(entry)"
+                @click="deleteWithUndo(entry)"
               >
                 🗑️
               </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+            </div>
+          </div>
+        </template>
+      </SortableList>
+    </template>
 
-    <!-- Add / Edit form -->
     <AdminModal
       :open="editor.open"
-      :title="editor.isEdit ? 'Edit Entry' : 'Add Timeline Entry'"
+      :title="editor.isEdit ? 'Edit entry' : 'Add timeline entry'"
       :error="editor.error"
+      :dirty="isDirty"
       @close="closeEditor"
     >
-      <div class="field">
-        <label class="field__label" for="tl-type">Type <span class="req">*</span></label>
-        <select id="tl-type" v-model="editor.form.type" class="field__input">
-          <option value="education">🎓 Education</option>
-          <option value="work">💼 Work Experience</option>
-        </select>
-      </div>
-      <div class="field">
-        <label class="field__label" for="tl-title">Title <span class="req">*</span></label>
+      <fieldset class="m-0 border-0 p-0">
+        <legend class="mb-1.5 p-0 text-xs font-semibold tracking-wide text-muted uppercase">
+          Type
+        </legend>
+        <div class="flex gap-2">
+          <label
+            v-for="option in TYPES"
+            :key="option.value"
+            class="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold"
+            :class="
+              editor.form.type === option.value
+                ? 'border-accent bg-accent/10 text-accent'
+                : 'border-line text-muted'
+            "
+          >
+            <input
+              v-model="editor.form.type"
+              type="radio"
+              name="timeline-type"
+              :value="option.value"
+              class="sr-only"
+            />
+            {{ option.label }}
+          </label>
+        </div>
+      </fieldset>
+
+      <FormField
+        v-slot="{ id, describedBy, invalid }"
+        label="Title"
+        required
+        :error="fieldError('title')"
+      >
         <input
-          id="tl-title"
+          :id="id"
           v-model="editor.form.title"
-          class="field__input"
-          placeholder="e.g. Bachelor of Science in IT"
+          class="form-input"
+          :placeholder="
+            editor.form.type === 'education'
+              ? 'e.g. BS Information Technology'
+              : 'e.g. Full-stack Developer Intern'
+          "
+          :aria-describedby="describedBy"
+          :aria-invalid="invalid"
         />
-      </div>
-      <div class="field">
-        <label class="field__label" for="tl-institution"
-          >Institution <span class="req">*</span></label
+      </FormField>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <FormField
+          v-slot="{ id, describedBy, invalid }"
+          :label="editor.form.type === 'education' ? 'School' : 'Company'"
+          required
+          :error="fieldError('institution')"
         >
-        <input
-          id="tl-institution"
-          v-model="editor.form.institution"
-          class="field__input"
-          placeholder="e.g. Gordon College"
-        />
-      </div>
-      <div class="field">
-        <label class="field__label" for="tl-location">Location</label>
-        <input
-          id="tl-location"
-          v-model="editor.form.location"
-          class="field__input"
-          placeholder="e.g. Olongapo City"
-        />
-      </div>
-      <div class="modal-row">
-        <div class="field">
-          <label class="field__label" for="tl-start">Start Date <span class="req">*</span></label>
           <input
-            id="tl-start"
+            :id="id"
+            v-model="editor.form.institution"
+            class="form-input"
+            :aria-describedby="describedBy"
+            :aria-invalid="invalid"
+          />
+        </FormField>
+        <FormField
+          v-slot="{ id, describedBy, invalid }"
+          label="Location"
+          optional
+          :error="fieldError('location')"
+        >
+          <input
+            :id="id"
+            v-model="editor.form.location"
+            class="form-input"
+            placeholder="e.g. Remote"
+            :aria-describedby="describedBy"
+            :aria-invalid="invalid"
+          />
+        </FormField>
+        <FormField
+          v-slot="{ id, describedBy, invalid }"
+          label="Start"
+          required
+          :error="fieldError('start_date')"
+        >
+          <input
+            :id="id"
             v-model="editor.form.start_date"
-            class="field__input"
-            placeholder="e.g. 2020 or Jun 2020"
+            class="form-input"
+            placeholder="e.g. Jun 2021"
+            :aria-describedby="describedBy"
+            :aria-invalid="invalid"
           />
-        </div>
-        <div class="field">
-          <label class="field__label" for="tl-end">End Date</label>
+        </FormField>
+        <FormField
+          v-slot="{ id, describedBy, invalid }"
+          label="End"
+          optional
+          hint="Leave empty for “Present”"
+          :error="fieldError('end_date')"
+        >
           <input
-            id="tl-end"
+            :id="id"
             v-model="editor.form.end_date"
-            class="field__input"
-            placeholder="Leave empty for Present"
+            class="form-input"
+            placeholder="e.g. 2025"
+            :aria-describedby="describedBy"
+            :aria-invalid="invalid"
           />
-        </div>
+        </FormField>
       </div>
-      <div class="field">
-        <label class="field__label" for="tl-desc">Description</label>
+      <FormField
+        v-slot="{ id, describedBy, invalid }"
+        label="Description"
+        optional
+        :error="fieldError('description')"
+      >
         <textarea
-          id="tl-desc"
+          :id="id"
           v-model="editor.form.description"
-          class="field__input field__textarea"
-          placeholder="Brief description of your role or course..."
+          rows="4"
+          class="form-input resize-y"
+          placeholder="Your role, what you learned or achieved…"
+          :aria-describedby="describedBy"
+          :aria-invalid="invalid"
         ></textarea>
-      </div>
+      </FormField>
 
       <template #actions>
         <button type="button" class="btn-ghost" @click="closeEditor">Cancel</button>
         <button type="button" class="btn-primary" :disabled="editor.saving" @click="save">
-          {{ editor.saving ? 'Saving...' : editor.isEdit ? 'Save Changes' : 'Add Entry' }}
+          {{ editor.saving ? 'Saving…' : editor.isEdit ? 'Save changes' : 'Add entry' }}
         </button>
       </template>
     </AdminModal>
-
-    <ConfirmDeleteDialog
-      :open="deletion.open"
-      item-type="Timeline Entry"
-      :item-name="deleteName"
-      :deleting="deletion.deleting"
-      @cancel="cancelDelete"
-      @confirm="confirmDelete"
-    />
   </section>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
-import { useTimelineStore } from '@/stores/content'
-import { useCrudEditor, requiredFields } from '@/composables/useCrudEditor'
+import { computed, onMounted, ref } from 'vue'
 import AdminModal from '@/components/admin/AdminModal.vue'
-import ConfirmDeleteDialog from '@/components/admin/ConfirmDeleteDialog.vue'
+import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
+import FormField from '@/components/common/FormField.vue'
+import SortableList from '@/components/admin/SortableList.vue'
+import SkeletonBlock from '@/components/common/SkeletonBlock.vue'
+import StateMessage from '@/components/common/StateMessage.vue'
+import { useCrudEditor, requiredFields } from '@/composables/useCrudEditor'
+import { useUndoableDelete } from '@/composables/useUndoableDelete'
+import { useAdminTimelineStore } from '@/stores/content'
+import { useToastStore } from '@/stores/toast'
 
-const store = useTimelineStore()
+const TYPES = [
+  { value: 'education', label: '🎓 Education' },
+  { value: 'work', label: '💼 Work' },
+]
 
-const {
-  editor,
-  openCreate,
-  openEdit,
-  closeEditor,
-  save,
-  deletion,
-  deleteName,
-  askDelete,
-  cancelDelete,
-  confirmDelete,
-} = useCrudEditor(store, {
-  label: 'Timeline entry',
-  emptyForm: {
-    type: 'education',
-    title: '',
-    institution: '',
-    location: '',
-    start_date: '',
-    end_date: '',
-    description: '',
-  },
-  validate: (form) =>
-    requiredFields(form, { title: 'Title', institution: 'Institution', start_date: 'Start date' }),
+const store = useAdminTimelineStore()
+const toast = useToastStore()
+const search = ref('')
+
+const visible = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  return q
+    ? store.items.filter((e) => `${e.title} ${e.institution}`.toLowerCase().includes(q))
+    : store.items
 })
+
+const { editor, isDirty, fieldError, openCreate, openEdit, closeEditor, save } = useCrudEditor(
+  store,
+  {
+    label: 'Timeline entry',
+    emptyForm: {
+      type: 'education',
+      title: '',
+      institution: '',
+      location: '',
+      start_date: '',
+      end_date: '',
+      description: '',
+    },
+    validate: (form) =>
+      requiredFields(form, {
+        title: 'Title',
+        institution: form.type === 'education' ? 'School' : 'Company',
+        start_date: 'Start date',
+      }),
+  },
+)
+
+const { deleteWithUndo } = useUndoableDelete(store, { label: 'Timeline entry' })
+
+async function saveOrder(ids) {
+  try {
+    await store.reorder(ids)
+    toast.success('Order saved')
+  } catch (err) {
+    toast.error(`Couldn't save order: ${err.message}`)
+  }
+}
 
 onMounted(() => store.load())
 </script>

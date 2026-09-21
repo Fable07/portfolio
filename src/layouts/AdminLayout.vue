@@ -1,68 +1,142 @@
 <!--
-  AdminLayout — frame for every signed-in admin page (/admin/*):
-  header (title, "View site", Sign Out) + tabs + toast + the current admin page.
+  AdminLayout — frame for every signed-in admin page (/admin/*).
+  Desktop: sticky sidebar (nav, signed-in user, View site, Sign out).
+  Mobile: top bar with a horizontally scrollable tab strip.
 
-  Tabs come from `adminNav` in src/config/navigation.js.
+  The admin is always dark (data-theme="dark"), independent of the public site theme.
+  Menu items come from `adminNav` in src/config/navigation.js.
   The router guard only lets signed-in admins reach this layout.
 -->
 <template>
-  <div class="admin-shell">
-    <div class="admin-dashboard">
-      <header class="admin-header">
-        <div class="admin-header__left">
-          <span class="admin-badge">🛡️ Admin</span>
-          <h1 class="admin-title">Portfolio Manager</h1>
-        </div>
-        <div class="flex items-center gap-2">
-          <RouterLink :to="{ name: 'profile' }" class="btn-ghost no-underline" target="_blank">
-            View site ↗
-          </RouterLink>
-          <button type="button" class="btn-ghost" @click="signOut">Sign Out</button>
-        </div>
-      </header>
-
-      <nav class="admin-tabs" aria-label="Admin sections">
+  <div data-admin data-theme="dark" class="-m-[15px] min-h-dvh bg-[#0b1018] text-muted">
+    <div class="mx-auto flex max-w-[1400px] gap-6 p-3 sm:p-5">
+      <!-- ── Sidebar (desktop) ── -->
+      <aside
+        class="sticky top-5 hidden h-[calc(100dvh-40px)] w-56 shrink-0 flex-col rounded-2xl border border-line bg-card p-4 lg:flex"
+      >
         <RouterLink
-          v-for="tab in adminNav"
-          :key="tab.name"
-          :to="{ name: tab.name }"
-          class="admin-tab"
-          active-class="admin-tab--active"
+          :to="{ name: 'admin-dashboard' }"
+          class="mb-5 flex items-center gap-2 px-2 no-underline"
         >
-          <span aria-hidden="true">{{ tab.icon }}</span> {{ tab.label }}
+          <span
+            class="flex size-8 items-center justify-center rounded-lg bg-accent/15 text-accent"
+            aria-hidden="true"
+            >🛡️</span
+          >
+          <span>
+            <span class="block text-sm font-bold text-heading">Portfolio Manager</span>
+            <span class="block text-xs">Admin</span>
+          </span>
         </RouterLink>
-      </nav>
 
-      <!-- Toast: "✔ Project saved" / "✘ Delete failed" (from the toast store) -->
-      <Transition name="fade">
-        <div
-          v-if="toast.current"
-          class="save-toast"
-          :class="toast.current.type"
-          role="status"
-          aria-live="polite"
-        >
-          {{ toast.current.message }}
+        <nav aria-label="Admin sections" class="flex-1">
+          <ul class="m-0 grid list-none gap-1 p-0">
+            <li v-for="item in adminNav" :key="item.name">
+              <RouterLink
+                v-slot="{ href, navigate, isActive, isExactActive }"
+                :to="{ name: item.name }"
+                custom
+              >
+                <a
+                  :href="href"
+                  class="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-semibold no-underline transition-colors"
+                  :class="
+                    (item.exact ? isExactActive : isActive)
+                      ? 'bg-accent/15 text-accent'
+                      : 'text-muted hover:bg-surface hover:text-heading'
+                  "
+                  :aria-current="(item.exact ? isExactActive : isActive) ? 'page' : undefined"
+                  @click="navigate"
+                >
+                  <span aria-hidden="true">{{ item.icon }}</span
+                  >{{ item.label }}
+                  <!-- Unread counter (only items with a `badge` key in adminNav) -->
+                  <span
+                    v-if="badgeCount(item)"
+                    class="ml-auto rounded-full bg-accent px-1.5 text-xs font-bold text-[#0b1018]"
+                    >{{ badgeCount(item) }}</span
+                  >
+                </a>
+              </RouterLink>
+            </li>
+          </ul>
+        </nav>
+
+        <div class="grid gap-2 border-t border-line pt-3 text-sm">
+          <p v-if="auth.user?.email" class="m-0 truncate px-2 text-xs" :title="auth.user.email">
+            Signed in as<br /><span class="text-heading">{{ auth.user.email }}</span>
+          </p>
+          <RouterLink :to="{ name: 'profile' }" target="_blank" class="btn-ghost justify-start"
+            >↗ View site</RouterLink
+          >
+          <button type="button" class="btn-ghost justify-start" @click="signOut">⎋ Sign out</button>
         </div>
-      </Transition>
+      </aside>
 
-      <RouterView />
+      <div class="min-w-0 flex-1">
+        <!-- ── Top bar + tabs (mobile/tablet) ── -->
+        <header class="mb-4 rounded-2xl border border-line bg-card lg:hidden">
+          <div class="flex items-center justify-between gap-2 px-4 py-3">
+            <span class="text-sm font-bold text-heading">🛡️ Portfolio Manager</span>
+            <span class="flex gap-1">
+              <RouterLink
+                :to="{ name: 'profile' }"
+                target="_blank"
+                class="btn-ghost px-2.5! py-1.5! text-xs!"
+                >View site ↗</RouterLink
+              >
+              <button type="button" class="btn-ghost px-2.5! py-1.5! text-xs!" @click="signOut">
+                Sign out
+              </button>
+            </span>
+          </div>
+          <nav
+            aria-label="Admin sections"
+            class="flex gap-1 overflow-x-auto border-t border-line px-2 py-2"
+          >
+            <RouterLink
+              v-for="item in adminNav"
+              :key="item.name"
+              :to="{ name: item.name }"
+              class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap text-muted no-underline"
+              :exact-active-class="item.exact ? 'bg-accent/15! text-accent!' : ''"
+              :active-class="item.exact ? '' : 'bg-accent/15! text-accent!'"
+            >
+              {{ item.icon }} {{ item.label }}
+              <span v-if="badgeCount(item)" class="text-accent">({{ badgeCount(item) }})</span>
+            </RouterLink>
+          </nav>
+        </header>
+
+        <main class="min-w-0">
+          <RouterView />
+        </main>
+      </div>
     </div>
+
+    <AppToast />
   </div>
 </template>
 
 <script setup>
-import { watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { useToastStore } from '@/stores/toast'
+import { onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import AppToast from '@/components/common/AppToast.vue'
 import { adminNav } from '@/config/navigation'
-import '@/styles/admin.css'
+import { useAuthStore } from '@/stores/auth'
+import { useMessagesStore } from '@/stores/messages'
 
 const auth = useAuthStore()
-const toast = useToastStore()
+const messages = useMessagesStore()
 const router = useRouter()
 const route = useRoute()
+
+// adminNav items may carry `badge: '<field on the messages store>'` — currently
+// only the Inbox, which shows how many messages are unread.
+const badgeCount = (item) => (item.badge ? messages[item.badge] : 0)
+
+// Loaded once for the whole admin so the badge is right on every page
+onMounted(() => messages.load())
 
 let signingOut = false
 
@@ -77,9 +151,8 @@ async function signOut() {
 watch(
   () => auth.isAuthenticated,
   (signedIn) => {
-    if (!signedIn && !signingOut) {
+    if (!signedIn && !signingOut)
       router.push({ name: 'admin-login', query: { redirect: route.fullPath } })
-    }
   },
 )
 </script>

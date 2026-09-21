@@ -22,8 +22,15 @@ export function configureAuth({ tokenGetter, unauthorizedHandler }) {
   onUnauthorized = unauthorizedHandler
 }
 
-export async function request(method, path, body) {
-  const options = { method, headers: { Accept: 'application/json' } }
+/**
+ * @param {string} method
+ * @param {string} path
+ * @param {object} [body]
+ * @param {{ keepalive?: boolean }} [extra]  keepalive lets the request finish even if the
+ *        page is closing (used to complete an "Undo"-able delete on tab close)
+ */
+export async function request(method, path, body, { keepalive = false } = {}) {
+  const options = { method, keepalive, headers: { Accept: 'application/json' } }
   const token = getToken()
   if (token) options.headers.Authorization = `Bearer ${token}`
   if (body !== undefined) {
@@ -52,9 +59,51 @@ export async function request(method, path, body) {
   return data
 }
 
+/**
+ * Upload a file (multipart/form-data) with progress reporting.
+ * Uses XMLHttpRequest because fetch() can't report upload progress.
+ *
+ * @param {string} path
+ * @param {FormData} formData
+ * @param {{ onProgress?: (percent: number) => void, signal?: AbortSignal }} options
+ */
+export function upload(path, formData, { onProgress, signal } = {}) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `${BASE_URL}${path}`)
+    xhr.setRequestHeader('Accept', 'application/json')
+    const token = getToken()
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100))
+    }
+    xhr.onload = () => {
+      let data = null
+      try {
+        data = JSON.parse(xhr.responseText)
+      } catch {
+        // non-JSON error page (e.g. PHP upload limit exceeded)
+      }
+      if (xhr.status >= 200 && xhr.status < 300) return resolve(data)
+      if (xhr.status === 401 && token) onUnauthorized()
+      const message =
+        xhr.status === 413
+          ? 'File is too large for the server.'
+          : data?.errors?.file?.[0] || data?.message || `Upload failed (${xhr.status})`
+      reject(new ApiError(message, { status: xhr.status, errors: data?.errors }))
+    }
+    xhr.onerror = () => reject(new ApiError('Upload failed — cannot reach the server.'))
+    xhr.onabort = () => reject(new ApiError('Upload cancelled.', { status: 0 }))
+    signal?.addEventListener('abort', () => xhr.abort())
+
+    xhr.send(formData)
+  })
+}
+
 export const http = {
   get: (path) => request('GET', path),
   post: (path, body) => request('POST', path, body ?? {}),
   put: (path, body) => request('PUT', path, body ?? {}),
-  delete: (path) => request('DELETE', path),
+  delete: (path, body, extra) => request('DELETE', path, body, extra),
 }

@@ -1,63 +1,140 @@
 <!--
-  AdminModal — popup form dialog used by every admin page for "Add" / "Edit".
+  AdminModal — dialog for admin forms.
 
-  <AdminModal :open="editor.open" title="Add Project" :error="editor.error" @close="closeEditor">
-    …form fields…
-    <template #actions> …Cancel / Save buttons… </template>
+  <AdminModal :open="editor.open" title="Edit Project" :dirty="isDirty" size="lg" @close="closeEditor">
+    …fields…
+    <template #aside> …optional right column, e.g. live preview… </template>
+    <template #actions> …Cancel / Save… </template>
   </AdminModal>
 
-  Closes on backdrop click or the Escape key.
+  • Closes on Escape, backdrop click or the ✕ button — but if `dirty` (unsaved changes)
+    it first asks "Discard changes?" instead of closing.
+  • Keyboard focus is trapped inside while open; the page behind can't scroll.
+  • `error` shows a form-level message above the actions.
 -->
 <template>
-  <Transition name="modal">
-    <div v-if="open" class="modal-overlay" @click.self="$emit('close')">
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition duration-200"
+      leave-active-class="transition duration-150"
+      enter-from-class="opacity-0"
+      leave-to-class="opacity-0"
+    >
       <div
-        class="modal-card"
-        :class="{ 'modal-card--sm': size === 'sm' }"
-        role="dialog"
-        aria-modal="true"
-        :aria-labelledby="titleId"
+        v-if="open"
+        data-theme="dark"
+        class="fixed inset-0 z-[1000] flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4"
+        @mousedown.self="requestClose"
       >
-        <h3 :id="titleId" class="modal-title">{{ title }}</h3>
+        <div
+          ref="panel"
+          role="dialog"
+          aria-modal="true"
+          :aria-labelledby="titleId"
+          class="flex max-h-[94dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-line bg-card text-muted shadow-[0_32px_80px_rgba(0,0,0,0.7)] sm:rounded-2xl"
+          :class="SIZES[size]"
+        >
+          <header class="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
+            <h2 :id="titleId" class="m-0 text-lg font-bold text-heading">{{ title }}</h2>
+            <button
+              type="button"
+              class="btn-ghost px-2.5!"
+              aria-label="Close"
+              @click="requestClose"
+            >
+              ✕
+            </button>
+          </header>
 
-        <div class="modal-fields">
-          <slot />
-        </div>
+          <div class="min-h-0 flex-1 overflow-y-auto">
+            <div class="grid gap-6 p-5" :class="$slots.aside ? 'lg:grid-cols-[1fr_320px]' : ''">
+              <div class="grid content-start gap-4">
+                <slot />
+              </div>
+              <aside v-if="$slots.aside" class="lg:sticky lg:top-0 lg:self-start">
+                <slot name="aside" />
+              </aside>
+            </div>
+          </div>
 
-        <p v-if="error" class="login-error" role="alert">{{ error }}</p>
-
-        <div class="modal-actions">
-          <slot name="actions" />
+          <footer class="border-t border-line px-5 py-3.5">
+            <!-- Unsaved-changes confirmation replaces the normal footer -->
+            <div
+              v-if="confirmingDiscard"
+              class="flex flex-wrap items-center justify-between gap-3"
+              role="alert"
+            >
+              <span class="text-sm font-semibold text-amber-300">Discard unsaved changes?</span>
+              <span class="flex gap-2">
+                <button type="button" class="btn-ghost" @click="confirmingDiscard = false">
+                  Keep editing
+                </button>
+                <button type="button" class="btn-danger" @click="discard">Discard</button>
+              </span>
+            </div>
+            <template v-else>
+              <p
+                v-if="error"
+                class="m-0 mb-3 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300"
+                role="alert"
+              >
+                {{ error }}
+              </p>
+              <div class="flex flex-wrap justify-end gap-2">
+                <slot name="actions" />
+              </div>
+            </template>
+          </footer>
         </div>
       </div>
-    </div>
-  </Transition>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup>
-import { useId, watch, onBeforeUnmount } from 'vue'
+import { nextTick, ref, useId, watch } from 'vue'
+import { onKeyStroke, useScrollLock } from '@vueuse/core'
+import { useFocusTrap } from '@vueuse/integrations/useFocusTrap'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
   title: { type: String, required: true },
   error: { type: String, default: '' },
-  size: { type: String, default: 'md' }, // 'md' | 'sm'
+  dirty: { type: Boolean, default: false },
+  size: { type: String, default: 'md' }, // 'sm' | 'md' | 'lg'
 })
 const emit = defineEmits(['close'])
 
-const titleId = useId() // unique id linking the dialog to its title for screen readers
+const SIZES = { sm: 'sm:max-w-md', md: 'sm:max-w-xl', lg: 'sm:max-w-5xl' }
 
-function onKeydown(event) {
-  if (event.key === 'Escape') emit('close')
-}
+const titleId = useId()
+const panel = ref(null)
+const confirmingDiscard = ref(false)
 
-// Only listen for Escape while the modal is open
+const { activate, deactivate } = useFocusTrap(panel, { immediate: false, allowOutsideClick: true })
+const scrollLock = useScrollLock(document.body)
+
 watch(
   () => props.open,
-  (isOpen) => {
-    if (isOpen) document.addEventListener('keydown', onKeydown)
-    else document.removeEventListener('keydown', onKeydown)
+  async (isOpen) => {
+    scrollLock.value = isOpen
+    confirmingDiscard.value = false
+    if (isOpen) {
+      await nextTick()
+      activate()
+    } else deactivate()
   },
 )
-onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
+
+function requestClose() {
+  if (props.dirty) confirmingDiscard.value = true
+  else emit('close')
+}
+
+function discard() {
+  confirmingDiscard.value = false
+  emit('close')
+}
+
+onKeyStroke('Escape', () => props.open && requestClose())
 </script>
