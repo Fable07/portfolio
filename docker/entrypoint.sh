@@ -23,6 +23,14 @@ chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
 # Media files are served from public/storage → storage/app/public
 [ -L public/storage ] || php artisan storage:link || true
 
+# Render/Railway/Fly assign the port via $PORT; nginx.conf ships with 80 as the default.
+# Rewriting the listen directive here keeps one image working on any of them.
+PORT="${PORT:-80}"
+if [ "$PORT" != "80" ]; then
+    echo "entrypoint: binding nginx to port $PORT"
+    sed -i "s/listen 80 default_server;/listen ${PORT} default_server;/" /etc/nginx/nginx.conf
+fi
+
 echo "entrypoint: caching configuration"
 php artisan config:cache
 php artisan route:cache
