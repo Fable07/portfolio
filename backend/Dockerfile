@@ -28,8 +28,9 @@ RUN composer install \
 # ── Stage 2: runtime ──
 FROM php:8.2-fpm-alpine AS production
 
-# nginx + supervisord run the two processes; postgresql-dev is only needed to compile pdo_pgsql
-RUN apk add --no-cache nginx supervisor \
+# nginx + supervisord run the two processes; postgresql-dev is only needed to compile pdo_pgsql,
+# but libpq (the client library pdo_pgsql links to) must stay installed at runtime
+RUN apk add --no-cache nginx supervisor libpq \
     && apk add --no-cache --virtual .build-deps postgresql-dev \
     && docker-php-ext-install pdo_pgsql bcmath opcache \
     && apk del .build-deps
@@ -44,6 +45,8 @@ RUN chmod +x /usr/local/bin/entrypoint
 WORKDIR /app
 
 COPY --from=vendor /app/vendor ./vendor
+# Composer itself, for the dump-autoload below — the php-fpm image doesn't ship it
+COPY --from=vendor /usr/bin/composer /usr/local/bin/composer
 COPY . .
 
 # The scripts skipped in stage 1, now that artisan exists
@@ -51,7 +54,7 @@ RUN composer dump-autoload --no-dev --optimize --no-interaction \
     && php artisan package:discover --ansi
 
 # php-fpm runs as www-data, so it must own the writable directories
-RUN mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache \
+RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache \
     && php artisan storage:link || true
 
