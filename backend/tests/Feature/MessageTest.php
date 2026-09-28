@@ -56,6 +56,18 @@ class MessageTest extends TestCase
         $this->assertSame(0, Message::count());
     }
 
+    public function test_request_ip_honors_x_forwarded_for_from_the_render_proxy(): void
+    {
+        // bootstrap/app.php sets trustProxies(at: '*') because Render terminates TLS in
+        // front of the container and proxies every request. Without it, $request->ip()
+        // would return the proxy's own address instead of the real client's.
+        $this->postJson('/api/messages', $this->payload(), [
+            'X-Forwarded-For' => '203.0.113.42',
+        ])->assertCreated();
+
+        $this->assertSame('203.0.113.42', Message::sole()->meta['ip']);
+    }
+
     public function test_sending_is_rate_limited(): void
     {
         for ($i = 0; $i < 5; $i++) {
