@@ -25,7 +25,7 @@
 ## Owner action items (unchecked = not yet done)
 
 - [x] Pushed to GitHub (dev + main at 24eba35, 2026-09-28)
-- [ ] Check Supabase RLS: Advisors → Security, enable on all `public` tables (or disable Data API) — **S1 verification**
+- [x] Supabase RLS enabled on all tables (S1) — verified live
 - [ ] Create Cloudinary account (free tier), set credentials in Render secrets
 - [ ] Connect Render Blueprint: New → Blueprint → select `Fable07/portfolio` → reads `render.yaml`
 - [ ] Connect Vercel: Add New → Project → import `Fable07/portfolio` → Root Directory: `frontend`
@@ -52,7 +52,7 @@ Free tier notes: Render sleeps after 15 min idle (~30–60 s cold start); Vercel
 - [x] **S2 (High)** — trustProxies config ✅ applied
 - [x] **S4 (Medium)** — Security headers + CSP ✅ in vercel.json
 - [x] **S6 (Low)** — visitor_id validation ✅ added
-- [ ] **S1 (High)** — Supabase RLS: check Advisors → Security, enable on all `public` tables
+- [x] **S1 (High)** — Supabase RLS enabled on all public tables (2026-09-28), owner = postgres; live API re-verified. Re-run the RLS SQL in docs/DEPLOYMENT.md §1 after any migration that adds a table.
 - [x] **S3 (Medium)** — Dev+prod shared DB: ✅ accepted risk (documented in PLAN.md)
 - [ ] **S5 (Medium)** — Media persistence: Render free tier → use `MEDIA_DRIVER=cloudinary` once keys set
 - [ ] **S7 (Low)** — `APP_DEBUG=false` in render.yaml ✅; verify it (ENV check post-deploy)
@@ -68,3 +68,4 @@ Tell Claude: **"Read `docs/CHECKPOINT.md` and continue."** The root `CLAUDE.md` 
 - **2026-09-28** — Phase 1 complete: monorepo merge done (both histories preserved, 36 commits), root CI workflows added, docker-compose moved to root, Laravel scaffolding removed, security S2/S4/S6 applied, render.yaml Blueprint added, QA all green, Phase 1 documentation and unified deployment runbook created. Ready for push to GitHub and Phases 4–5 deployment.
 - **2026-09-28** — Phase 4 in progress: Cloudinary account + Render Blueprint created by owner. First Render build failed (composer missing in runtime stage, exit 127). Fixed in f34bd18 along with 3 latent boot bugs (libpq, busybox mkdir, missing resources/views). Owner to push and redeploy.
 - **2026-09-28** — Render LIVE at https://portfolio-api-podn.onrender.com (manual deploy). /up, /api/projects, /api/visitors/count OK against Supabase. Auto-deploy blocked: GitHub Actions not running ("account is locked due to a billing issue") so checksPass never fires — owner to fix billing or switch render.yaml to autoDeployTrigger: commit. Next: APP_URL on Render, Vercel import (root=frontend, VITE_API_URL=https://portfolio-api-podn.onrender.com/api), then FRONTEND_URLS.
+- **2026-09-28** — S1 closed: owner enabled RLS on all public tables; live API re-tested (projects, hobbies, resume, visitors, login 422 on bad creds) — all OK.
