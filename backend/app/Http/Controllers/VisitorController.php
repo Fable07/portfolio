@@ -11,7 +11,10 @@ class VisitorController extends Controller
     // Record a visit and return count of unique visitors in last 14 days
     public function increment(Request $request)
     {
-        $visitorId = $request->input('visitor_id');
+        $data = $request->validate([
+            'visitor_id' => ['required', 'string', 'max:64'],
+        ]);
+        $visitorId = $data['visitor_id'];
         $twoWeeksAgo = Carbon::now()->subDays(14);
 
         // Check if this visitor already visited within the last 14 days
@@ -27,8 +30,12 @@ class VisitorController extends Controller
             ]);
         }
 
-        // Clean up visits older than 14 days
-        Visitor::where('visited_at', '<', $twoWeeksAgo)->delete();
+        // Clean up visits older than 14 days — this table is hit on every page view, so
+        // running a DELETE every single time is wasted work. A ~1-in-50 chance keeps the
+        // table bounded without adding a scheduled command.
+        if (random_int(1, 50) === 1) {
+            Visitor::where('visited_at', '<', $twoWeeksAgo)->delete();
+        }
 
         // Return count of unique visitors in last 14 days
         $count = Visitor::where('visited_at', '>=', $twoWeeksAgo)
