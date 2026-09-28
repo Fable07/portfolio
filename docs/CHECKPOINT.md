@@ -1,6 +1,17 @@
 # Checkpoint
 
-`Last updated: 2026-09-28 · Current phase: Phase 1 done & pushed → Phases 4–5 deploy (owner dashboard steps)`
+`Last updated: 2026-09-28 (end of day) · Current phase: Backend LIVE → next: Vercel frontend deploy`
+
+## ▶ Resume here (2026-09-29)
+- Backend API LIVE on Render: https://portfolio-api-podn.onrender.com (Supabase RLS on, Cloudinary keys set)
+- **Next steps, in order:**
+  1. Vercel: Add New → Project → import `Fable07/portfolio` → Root Directory `frontend` → env `VITE_API_URL=https://portfolio-api-podn.onrender.com/api` → Deploy
+  2. Render → Environment: `FRONTEND_URLS=https://<vercel-url>,http://localhost:5173` (exact, no trailing slash); confirm `APP_URL=https://portfolio-api-podn.onrender.com`
+  3. Opus: have Sonnet QA smoke-test the live site (pages, icons, API, contact form, CSP console errors, Cloudinary upload)
+  4. Admin account: `php artisan admin:create` (skip if one exists)
+- **Open:** GitHub Actions blocked by account billing lock → Render auto-deploy (checksPass) never fires; deploy manually or switch `render.yaml` to `autoDeployTrigger: commit`.
+- Environment strategy: `main` = production (1 Render service + Vercel), `dev` = local only (see PLAN.md §9).
+- The sections below are the detailed history; this block is the current truth.
 
 ## Where we are
 
