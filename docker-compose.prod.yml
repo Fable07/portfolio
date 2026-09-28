@@ -4,6 +4,9 @@
 #   → site  http://<server>:8080   (put Caddy/nginx/Cloudflare in front for HTTPS)
 #   → API   http://<server>:8001
 #
+# Monorepo layout: this file lives at the repo root, and both services build
+# from the sibling ./backend and ./frontend directories below it.
+#
 # Differences from the dev stack:
 #   · the frontend is built once and served by nginx (no Node, no source in the image)
 #   · no source volumes — the image is the artifact
@@ -12,11 +15,11 @@
 services:
   api:
     build:
-      context: ../portfolio-backend
+      context: ./backend
       # The production backend image runs nginx + php-fpm under supervisord
       dockerfile: Dockerfile
     env_file:
-      - ../portfolio-backend/.env.production
+      - ./backend/.env.production
     restart: unless-stopped
     ports:
       - '8001:80'
@@ -31,7 +34,7 @@ services:
 
   frontend:
     build:
-      context: .
+      context: ./frontend
       dockerfile: Dockerfile
       args:
         # Baked into the bundle at build time — must be the PUBLIC API URL
