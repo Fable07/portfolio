@@ -7,7 +7,7 @@
 # Monorepo layout: this file lives at the repo root, and both services build
 # from the sibling ./backend and ./frontend directories below it.
 # Both services read the same Supabase database (one database for dev and prod —
-# see DEPLOYMENT.md), so keep migrations additive.
+# see docs/DEPLOYMENT.md), so keep migrations additive.
 services:
   api:
     build:

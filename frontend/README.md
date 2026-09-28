@@ -155,13 +155,13 @@ Inline `:style` is only used for values that change at runtime (scroll bar, uplo
 | `.github/workflows/ci.yml` | On every push/PR to `dev` or `main`: lint, format check, tests, build.                      |
 | `Dockerfile`               | Production image: Node builds `dist/`, nginx serves it (SPA routing, asset caching).        |
 | `Dockerfile.dev`           | Development image: Vite dev server with hot reload.                                         |
-| `docker-compose.dev.yml`   | Frontend + API together for local work (expects the two repos side by side).                |
+| `docker-compose.dev.yml`   | Frontend + API together for local work (at the repo root).                                  |
 | `docker-compose.prod.yml`  | The live stack, with a persistent volume for uploaded media.                                |
-| `DEPLOYMENT.md`            | The `dev` → `main` release flow, environment variables, hosting options, go-live checklist. |
+| `docs/DEPLOYMENT.md`       | The `dev` → `main` release flow, environment variables, hosting options, go-live checklist. |
 
 Two things worth knowing before deploying:
 
 - **`VITE_API_URL` is baked in at build time.** Changing the API URL means rebuilding the
   frontend image, not restarting it.
 - **Dev and production share one Supabase database,** so migrations must stay additive and
-  media stays in one `MEDIA_FOLDER`. `DEPLOYMENT.md` explains the consequences.
+  media stays in one `MEDIA_FOLDER`. `docs/DEPLOYMENT.md` explains the consequences.

@@ -6,7 +6,7 @@
 #   3. optionally runs migrations (RUN_MIGRATIONS=true)
 #
 # Migrations are opt-in on purpose: dev and production share ONE Supabase database
-# (see DEPLOYMENT.md), so a container starting with the wrong branch must not
+# (see docs/DEPLOYMENT.md), so a container starting with the wrong branch must not
 # silently change the live schema.
 set -e
 

@@ -129,5 +129,5 @@ migration run from `dev` changes the live schema immediately.
 - `Dockerfile` — production image (nginx + php-fpm + supervisord)
 - `Dockerfile.dev` — development image (`php artisan serve`, source mounted)
 - `.github/workflows/ci.yml` — Composer install + `php artisan test` on every push/PR
-- `DEPLOYMENT.md` — environment variables, media persistence, migrations, health check
-- The dev/prod compose files live in the frontend repo, which runs both services together.
+- `docs/DEPLOYMENT.md` — environment variables, media persistence, migrations, health check
+- The dev/prod compose files live at the repo root, which runs both services together.

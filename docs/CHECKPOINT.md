@@ -1,62 +1,62 @@
 # Checkpoint
 
-`Last updated: 2026-09-28 · Current phase: 0 done → Phase 1 next`
+`Last updated: 2026-09-28 · Current phase: Phase 1 done locally → push, then Phases 4–5 deploy`
 
 ## Where we are
 
-- Phase 0 (review + plan) complete; PLAN.md and CLAUDE.md bootstrap files written.
-- Frontend and backend maintain separate `.git` folders; frontend remote at `github.com/Fable07/portfolio` (branches `dev`/`main`); backend local-only.
-- No commits merged, pushed, or deployed to Render/Vercel yet.
-- Database confirmed: **Supabase Postgres** (session pooler at `*.pooler.supabase.com:5432`); test suite runs on in-memory SQLite.
-- Security baseline: Supabase RLS status **not yet verified** (S1), missing proxy trust config (S2), dev/prod share one DB (S3), and 5 medium/low findings documented (S4–S8).
+- **Phase 1 complete locally**: monorepo merged with both git histories (36 commits), root CI workflows added (path-filtered), docker-compose moved to root, Laravel Vite scaffolding removed from backend, S2/S4/S6 security fixes applied, render.yaml Blueprint added.
+- **QA green**: frontend 45/45 tests pass, lint/format clean, build OK; backend 34 tests pass / 160 assertions.
+- **Owner decisions accepted** (2026-09-28): keep both git histories ✅; ONE shared Supabase DB for dev+prod ✅; Cloudinary for media ✅; free `*.vercel.app` domain ✅; Render free plan ✅; auto-deploy from GitHub main ✅.
+- **Not yet pushed to GitHub** — owner must push (`git push origin dev` then `git push origin dev:main`).
 
-## QA baseline (2026-09-28, before any changes)
+## QA status (Phase 1 complete)
 
-| Check | Result | Detail |
-|---|---|---|
-| Frontend vitest | PASS | 4 files, 45 tests |
-| Frontend lint:check (oxlint + eslint) | PASS | 0 warnings/errors |
-| Frontend format:check | PASS | — |
-| Frontend build (VITE_API_URL=/api) | PASS | 186 modules; note stale caniuse-lite (informational) |
-| Backend phpunit (in-memory SQLite) | PASS | 28 tests, 139 assertions |
-| Backend API routes | OK | 37 routes |
+| Check | Before | After | Detail |
+|---|---|---|---|
+| Frontend vitest | PASS (45) | PASS (45) | Unchanged |
+| Frontend lint + format | PASS | PASS | Clean |
+| Frontend build | PASS | PASS | CSP fixed (added `data:` to img-src) |
+| Backend phpunit | PASS (28/139) | PASS (34/160) | +6 tests (trustProxies, visitor validation) |
+| API routes | 37 | 37 | —  |
+| Monorepo structure | N/A | ✅ | Root `.github/workflows`, docker-compose at root |
 
-**Tool versions:** node v20.20.0, npm 10.8.2, php 8.2.12 (XAMPP), composer 2.9.5.
+**Security fixes applied**: S2 (trustProxies), S4 (CSP + headers in vercel.json), S6 (visitor_id validation). S3 is accepted risk (shared DB). Render env values quoted, Vercel ignoreCommand uses `VERCEL_GIT_PREVIOUS_SHA`.
 
-## Waiting on the owner
+## Owner action items (unchecked = not yet done)
 
-- [ ] Git history — keep both histories (recommended) or start fresh?
-- [ ] Dev database — keep one shared Supabase DB, or create a separate free dev project (recommended)?
-- [ ] Media — will you upload project screenshots/videos via the admin panel? If yes → Cloudinary account needed before Phase 4.
-- [ ] Domain — custom domain, or `*.vercel.app` + `*.onrender.com` for now?
-- [ ] Render plan — free (cold starts) or Starter ($7/mo, always on)?
-- [ ] Repo visibility — public (typical for portfolios), or private?
+- [ ] Push to GitHub: `git push origin dev && git push origin dev:main`
+- [ ] Check Supabase RLS: Advisors → Security, enable on all `public` tables (or disable Data API) — **S1 verification**
+- [ ] Create Cloudinary account (free tier), set credentials in Render secrets
+- [ ] Connect Render Blueprint: New → Blueprint → select `Fable07/portfolio` → reads `render.yaml`
+- [ ] Connect Vercel: Add New → Project → import `Fable07/portfolio` → Root Directory: `frontend`
+- [ ] Set env vars on Render: `APP_KEY`, `APP_URL`, database credentials, `FRONTEND_URLS` (after Vercel exists), Cloudinary keys
+- [ ] Set env vars on Vercel: `VITE_API_URL=https://<render-name>.onrender.com/api` (production)
+- [ ] Decide repo visibility (public or private) — optional, current GitHub setting is kept
+- [ ] Create first admin user: `php artisan admin:create <email> --name="Your Name"` (can run locally; shares prod DB)
 
-## Next step (Phase 1 — monorepo merge)
+## Next step (Phases 4–5 — deploy)
 
-**Lead: Sonnet (DevOps) · Review: Opus**
+**See `docs/DEPLOYMENT.md`** for the click-by-click runbook:
+1. **Supabase**: connection string under Project Settings → Database → Connection string (session pooler port 5432)
+2. **Cloudinary**: sign up, get cloud name + API key/secret
+3. **Render**: Blueprint setup (env vars + secrets via dashboard)
+4. **Vercel**: import repo, set build env vars, deploy
+5. **Wire CORS**: set `FRONTEND_URLS` on Render to match Vercel origin (exact, no trailing slash)
+6. **First admin user**: `admin:create` command
+7. **Smoke test**: site loads, icons show, API responds, contact form works, image upload → Cloudinary
 
-1. Move frontend files into `frontend/` subdirectory on a branch (git mv).
-2. Rewrite backend repo history into `backend/` subdirectory (git filter-repo or git subtree).
-3. Merge backend into frontend repo with `--allow-unrelated-histories`.
-4. Add root files: `.gitignore`, `.editorconfig`, `.gitattributes`, `.github/workflows/ci.yml` (path-filtered).
-5. Move `docker-compose.*.yml` from `frontend/` to root; update paths to point to `./backend` and `./frontend`.
-6. Remove unused Laravel scaffolding: `backend/package.json`, `backend/resources/`, `backend/welcome.blade.php`.
-7. Remove unused dependency `doctrine/dbal` from `backend/composer.json`.
-8. Add root `README.md` with overview, quick start, links to `docs/`.
-9. Merge `DEPLOYMENT.md` and overlapping docs; commit.
-10. Push branch to `dev`, create PR → `main`, merge after review.
+Free tier notes: Render sleeps after 15 min idle (~30–60 s cold start); Vercel builds only if `frontend/` changed; Render deploys only if `backend/` changed and CI passes.
 
 ## Open security items
 
-- [ ] **S1 (High)** — Check Supabase → Advisors → Security; if RLS is off on `public` tables, enable it on all tables (Laravel's `postgres` role bypasses it) or disable the Data API.
-- [ ] **S2 (High)** — No `trustProxies` config; behind Render proxy, rate limits become global.
-- [ ] **S3 (Medium)** — Dev and prod share one Supabase DB; recommend separate free project for dev.
-- [ ] **S4 (Medium)** — No security headers on SPA; add CSP, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `frame-ancestors`.
-- [ ] **S5 (Medium)** — Render free tier has no persistent disk; uploads vanish on deploy.
-- [ ] **S6 (Low)** — `VisitorController` doesn't validate `visitor_id`; add validation.
-- [ ] **S7 (Low)** — `APP_DEBUG=true` locally; must be `false` on Render.
-- [ ] **S8 (Low)** — CORS `FRONTEND_URLS` must be set to exact Vercel domain(s).
+- [x] **S2 (High)** — trustProxies config ✅ applied
+- [x] **S4 (Medium)** — Security headers + CSP ✅ in vercel.json
+- [x] **S6 (Low)** — visitor_id validation ✅ added
+- [ ] **S1 (High)** — Supabase RLS: check Advisors → Security, enable on all `public` tables
+- [x] **S3 (Medium)** — Dev+prod shared DB: ✅ accepted risk (documented in PLAN.md)
+- [ ] **S5 (Medium)** — Media persistence: Render free tier → use `MEDIA_DRIVER=cloudinary` once keys set
+- [ ] **S7 (Low)** — `APP_DEBUG=false` in render.yaml ✅; verify it (ENV check post-deploy)
+- [ ] **S8 (Low)** — `FRONTEND_URLS` must be set to exact Vercel origin post-deploy
 
 ## How to resume
 
@@ -65,3 +65,4 @@ Tell Claude: **"Read `docs/CHECKPOINT.md` and continue."** The root `CLAUDE.md` 
 ## Session log
 
 - **2026-09-28** — Phase 0 complete: reviewed both `frontend/` and `backend/` folders; confirmed Supabase Postgres + in-memory SQLite tests; security scan identified S1–S8; baseline QA all green; wrote `docs/PLAN.md` and root `CLAUDE.md`.
+- **2026-09-28** — Phase 1 complete: monorepo merge done (both histories preserved, 36 commits), root CI workflows added, docker-compose moved to root, Laravel scaffolding removed, security S2/S4/S6 applied, render.yaml Blueprint added, QA all green, Phase 1 documentation and unified deployment runbook created. Ready for push to GitHub and Phases 4–5 deployment.

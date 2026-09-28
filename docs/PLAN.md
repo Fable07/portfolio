@@ -90,21 +90,21 @@ Alternative: fresh `git init` at root (loses history — simpler, not recommende
 | Phase | Goal | Lead | Status |
 |---|---|---|---|
 | 0 | Review both folders, confirm DB, write plan + checkpoint | Opus | ✅ done |
-| 1 | Monorepo merge: combine git histories, root CI, move compose files, remove duplicates (§2 items 3–7), root README | Sonnet (DevOps) → Opus review | ⏳ next |
-| 2 | Security hardening: S1 (Supabase RLS), S2 (trustProxies), S4 (headers), S6 | Opus designs, Sonnet implements | pending |
-| 3 | QA baseline + CI green in the monorepo (frontend: lint/format/vitest/build; backend: phpunit) | Sonnet (QA) | pending |
-| 4 | Deploy backend to Render (Docker), Cloudinary on, env vars, `admin:create` | Sonnet (DevOps) | pending |
-| 5 | Deploy frontend to Vercel, CORS wiring, smoke test | Sonnet (DevOps) + QA | pending |
-| 6 | Docs: DEPLOYMENT.md merged, QA report, checkpoint | Haiku | ongoing |
+| 1 | Monorepo merge: combine git histories, root CI, move compose files, remove duplicates (§2 items 3–7), root README | Sonnet (DevOps) → Opus review | ✅ done |
+| 2 | Security hardening: S1 (Supabase RLS), S2 (trustProxies), S4 (headers), S6 | Opus designs, Sonnet implements | ⏳ S2/S4/S6 done; S1 pending owner |
+| 3 | QA baseline + CI green in the monorepo (frontend: lint/format/vitest/build; backend: phpunit) | Sonnet (QA) | ✅ baseline + green |
+| 4 | Deploy backend to Render (Docker), Cloudinary on, env vars, `admin:create` | Sonnet (DevOps) | next |
+| 5 | Deploy frontend to Vercel, CORS wiring, smoke test | Sonnet (DevOps) + QA | next |
+| 6 | Docs: DEPLOYMENT.md merged, QA report, checkpoint | Haiku | ✅ done |
 | 7 | Feature ideas (optional, after go-live) — see §7 | Opus proposes, Sonnet builds | backlog |
 
-## 6. Open questions for the owner
-1. **Git history** — keep both histories (recommended) or start fresh?
-2. **Dev database** — keep one shared Supabase DB, or create a separate free dev project (recommended)?
-3. **Media** — will you upload project screenshots/videos via the admin panel? If yes → Cloudinary account needed before Phase 4.
-4. **Domain** — custom domain, or `*.vercel.app` + `*.onrender.com` for now?
-5. **Render plan** — free (cold starts) or Starter ($7/mo, always on)?
-6. **Repo visibility** — public (typical for portfolios)? Secrets stay safe either way since `.env` is ignored.
+## 6. Owner decisions (2026-09-28)
+1. **Git history** — ✅ keep both histories (done: 36 commits, full frontend + backend history preserved)
+2. **Dev database** — ✅ keep one shared Supabase DB for dev+prod (accepted risk; dev and prod read/write same tables)
+3. **Media** — ✅ yes, Cloudinary account will be created; `MEDIA_DRIVER=cloudinary` for Render (backend/render.yaml ready)
+4. **Domain** — ✅ free `*.vercel.app` + `*.onrender.com` for now (custom domain deferred)
+5. **Render plan** — ✅ free tier (cold starts ~30–60 s acceptable; SPA has skeleton/loading states; upgrade to $7/mo later if needed)
+6. **Repo visibility** — not decided yet; the repo keeps its current GitHub setting (secrets are safe either way: `.env` is git-ignored)
 
 ## 7. Feature suggestions (backlog, after go-live)
 - SEO: per-page meta via `@unhead/vue` (already a dependency), `sitemap.xml`, Open Graph images for project pages.
