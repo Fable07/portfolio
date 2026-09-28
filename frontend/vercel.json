@@ -3,7 +3,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- .",
+  "ignoreCommand": "git diff --quiet ${VERCEL_GIT_PREVIOUS_SHA:-HEAD^} HEAD -- .",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
   "headers": [
     {
@@ -22,7 +22,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https://res.cloudinary.com https://i.ytimg.com; media-src 'self' https://res.cloudinary.com; font-src 'self'; connect-src 'self' https://*.onrender.com; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://res.cloudinary.com https://*.onrender.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://res.cloudinary.com https://i.ytimg.com; media-src 'self' https://res.cloudinary.com; font-src 'self'; connect-src 'self' https://*.onrender.com; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://res.cloudinary.com https://*.onrender.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
         }
       ]
     }
