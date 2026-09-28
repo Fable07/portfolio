@@ -120,3 +120,9 @@ Alternative: fresh `git init` at root (loses history — simpler, not recommende
 | Full-stack dev + DevOps | **Sonnet** | Implementing features, repo merge, CI, Docker/Render/Vercel config, security fixes |
 | QA | **Sonnet** | Automated tests across frontend / backend / API, reports pass/fail |
 | Docs | **Haiku** | README, DEPLOYMENT, QA reports, CHECKPOINT updates |
+
+## 9. Environment strategy (owner decision, 2026-09-28)
+- **Production** = `main` → one Render service (`portfolio-api`) + Vercel production. Only `main` deploys.
+- **Development** = `dev` → local only (`npm run dev` in frontend, `php artisan serve` in backend). Vercel preview builds of `dev` are optional, for layout checks only (API calls are blocked by CORS unless the preview origin is added to `FRONTEND_URLS`).
+- No staging API: dev and prod share one Supabase DB, so a second Render service would not isolate data. Revisit (second Render service on `dev` + second Supabase project) only if the project grows beyond a personal portfolio.
+- Release routine: test locally → `git push origin dev` → `git push origin dev:main`.
