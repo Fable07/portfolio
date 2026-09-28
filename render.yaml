@@ -1,0 +1,70 @@
+# Render Blueprint — deploys the Laravel API from backend/ as a Docker web service.
+# https://render.com/docs/blueprint-spec
+#
+# Secrets (sync: false) are set once in the Render dashboard, never committed here.
+services:
+  - type: web
+    name: portfolio-api
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # Only deploy once GitHub's checks (the backend CI workflow) pass on the commit.
+    autoDeployTrigger: checksPass
+    buildFilter:
+      paths:
+        - backend/**
+    healthCheckPath: /up
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: LOG_LEVEL
+        value: warning
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_PERSISTENT
+        value: true
+      - key: SESSION_DRIVER
+        value: file
+      - key: CACHE_STORE
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: MEDIA_DRIVER
+        value: cloudinary
+      - key: MEDIA_FOLDER
+        value: portfolio
+      - key: RUN_MIGRATIONS
+        value: false
+      - key: SANCTUM_EXPIRATION
+        value: 1440
+      # Secrets — set these in the Render dashboard, never here.
+      - key: APP_KEY
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: FRONTEND_URLS
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
