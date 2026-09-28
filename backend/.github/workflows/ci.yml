@@ -1,0 +1,50 @@
+# CI — runs on every push and pull request.
+#
+# The feature tests run against an in-memory SQLite database (see phpunit.xml), so CI
+# never touches Supabase and needs no secrets.
+#
+# Branches: `dev` is where work happens, `main` is what is deployed.
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  tests:
+    name: PHP tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          # pdo_sqlite for the test database, pdo_pgsql because config/database.php loads it
+          extensions: mbstring, pdo_sqlite, sqlite3, pdo_pgsql, fileinfo
+          coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - run: composer install --prefer-dist --no-interaction --no-progress
+
+      # A key is required to boot the app; tests don't need a real one
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Check the code compiles and routes resolve
+        run: php artisan route:list --json > /dev/null
+
+      - name: Run tests
+        run: php artisan test
