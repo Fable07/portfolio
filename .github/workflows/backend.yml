@@ -1,16 +1,26 @@
-# CI — runs on every push and pull request.
+# CI — runs on every push and pull request that touches backend/.
 #
 # The feature tests run against an in-memory SQLite database (see phpunit.xml), so CI
 # never touches Supabase and needs no secrets.
 #
 # Branches: `dev` is where work happens, `main` is what is deployed.
-name: CI
+name: Backend CI
 
 on:
   push:
     branches: [dev, main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
   pull_request:
     branches: [dev, main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+
+defaults:
+  run:
+    working-directory: backend
 
 jobs:
   tests:
@@ -31,8 +41,8 @@ jobs:
       - name: Cache Composer packages
         uses: actions/cache@v4
         with:
-          path: vendor
-          key: composer-${{ hashFiles('composer.lock') }}
+          path: backend/vendor
+          key: composer-${{ hashFiles('backend/composer.lock') }}
           restore-keys: composer-
 
       - run: composer install --prefer-dist --no-interaction --no-progress

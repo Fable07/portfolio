@@ -1,4 +1,4 @@
-# CI — runs on every push and pull request.
+# CI — runs on every push and pull request that touches frontend/.
 #
 # It runs the same checks as `npm run ci` locally:
 #   lint:check   oxlint + eslint WITHOUT --fix (CI must not rewrite files)
@@ -7,13 +7,23 @@
 #   build        production build, so a broken import fails here and not on deploy
 #
 # Branches: `dev` is where work happens, `main` is what is deployed.
-name: CI
+name: Frontend CI
 
 on:
   push:
     branches: [dev, main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend.yml'
   pull_request:
     branches: [dev, main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend.yml'
+
+defaults:
+  run:
+    working-directory: frontend
 
 jobs:
   frontend:
@@ -27,6 +37,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
       # `npm ci` installs exactly what package-lock.json pins
       - run: npm ci
@@ -46,5 +57,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: dist
-          path: dist
+          path: frontend/dist
           retention-days: 7
