@@ -71,7 +71,7 @@ Free tier notes: Render sleeps after 15 min idle (~30–60 s cold start); Vercel
 
 ## How to resume
 
-Tell Claude: **"Read `docs/CHECKPOINT.md` and continue."** The root `CLAUDE.md` auto-loads this instruction at session start.
+Tell Claude: **"Winky dinky"** (resume phrase, defined in CLAUDE.md) The root `CLAUDE.md` auto-loads this instruction at session start.
 
 ## Session log
 

@@ -2,6 +2,8 @@
 
 Vue 3 SPA (`frontend/`) + Laravel 12 API (`backend/`) + Supabase Postgres. Deploy target: Vercel (frontend) + Render (backend, Docker) + Cloudinary (admin-uploaded media).
 
+**Resume phrase: when the owner says "Winky dinky", read `docs/CHECKPOINT.md` (start at "▶ Resume here") and `docs/PLAN.md`, give a short status recap, and continue with the next step.**
+
 **Start every session by reading `docs/CHECKPOINT.md`** (current state + next step), then `docs/PLAN.md` (findings, roadmap, decisions). Update CHECKPOINT.md at the end of every work session.
 
 Rules:
