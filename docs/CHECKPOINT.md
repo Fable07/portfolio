@@ -1,13 +1,13 @@
 # Checkpoint
 
-`Last updated: 2026-09-28 · Current phase: Phase 1 done locally → push, then Phases 4–5 deploy`
+`Last updated: 2026-09-28 · Current phase: Phase 1 done & pushed → Phases 4–5 deploy (owner dashboard steps)`
 
 ## Where we are
 
 - **Phase 1 complete locally**: monorepo merged with both git histories (36 commits), root CI workflows added (path-filtered), docker-compose moved to root, Laravel Vite scaffolding removed from backend, S2/S4/S6 security fixes applied, render.yaml Blueprint added.
 - **QA green**: frontend 45/45 tests pass, lint/format clean, build OK; backend 34 tests pass / 160 assertions.
 - **Owner decisions accepted** (2026-09-28): keep both git histories ✅; ONE shared Supabase DB for dev+prod ✅; Cloudinary for media ✅; free `*.vercel.app` domain ✅; Render free plan ✅; auto-deploy from GitHub main ✅.
-- **Not yet pushed to GitHub** — owner must push (`git push origin dev` then `git push origin dev:main`).
+- **Pushed to GitHub** — `dev` and `main` both at 24eba35 on github.com/Fable07/portfolio.
 
 ## QA status (Phase 1 complete)
 
@@ -24,7 +24,7 @@
 
 ## Owner action items (unchecked = not yet done)
 
-- [ ] Push to GitHub: `git push origin dev && git push origin dev:main`
+- [x] Pushed to GitHub (dev + main at 24eba35, 2026-09-28)
 - [ ] Check Supabase RLS: Advisors → Security, enable on all `public` tables (or disable Data API) — **S1 verification**
 - [ ] Create Cloudinary account (free tier), set credentials in Render secrets
 - [ ] Connect Render Blueprint: New → Blueprint → select `Fable07/portfolio` → reads `render.yaml`
