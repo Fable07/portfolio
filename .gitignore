@@ -1,0 +1,19 @@
+# OS junk
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editors / IDEs
+.idea
+.fleet
+.nova
+.zed
+*.swp
+*.swo
+
+# Claude Code personal settings (per-project files still apply their own rules)
+.claude/settings.local.json
+
+# Logs
+*.log
