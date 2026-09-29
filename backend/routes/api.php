@@ -11,6 +11,8 @@ use App\Http\Controllers\TimelineController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MessageController;
+use App\Http\Middleware\CachePublicResponse;
+use App\Http\Middleware\FlushPublicCache;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,13 +25,16 @@ Route::post('/auth/login', [AuthController::class, 'login'])->middleware('thrott
 Route::post('/visitors/increment', [VisitorController::class, 'increment'])->middleware('throttle:30,1');
 Route::get('/visitors/count', [VisitorController::class, 'count']);
 
-Route::get('/projects', [ProjectController::class, 'index']);
-Route::get('/projects/{id}', [ProjectController::class, 'show'])->whereNumber('id');
-Route::get('/certifications', [CertificationController::class, 'index']);
-Route::get('/resume', [ResumeController::class, 'show']);
-Route::get('/hobbies', [HobbyController::class, 'index']);
-Route::get('/timeline', [TimelineController::class, 'index']);
-Route::get('/profile', [ProfileController::class, 'show']);
+// Portfolio content — cached until an admin write changes it (see CachePublicResponse)
+Route::middleware(CachePublicResponse::class)->group(function () {
+    Route::get('/projects', [ProjectController::class, 'index']);
+    Route::get('/projects/{id}', [ProjectController::class, 'show'])->whereNumber('id');
+    Route::get('/certifications', [CertificationController::class, 'index']);
+    Route::get('/resume', [ResumeController::class, 'show']);
+    Route::get('/hobbies', [HobbyController::class, 'index']);
+    Route::get('/timeline', [TimelineController::class, 'index']);
+    Route::get('/profile', [ProfileController::class, 'show']);
+});
 
 // Contact form — 5 messages per hour per IP
 Route::post('/messages', [MessageController::class, 'store'])->middleware('throttle:5,60');
@@ -40,7 +45,7 @@ Route::post('/messages', [MessageController::class, 'store'])->middleware('throt
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', FlushPublicCache::class])->group(function () {
     // Auth session
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);

@@ -114,4 +114,11 @@ return [
 
     'prefix' => env('CACHE_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-cache-'),
 
+    /*
+    | Seconds a cached public API response lives (App\Http\Middleware\CachePublicResponse).
+    | Admin writes clear it immediately; this only bounds edits made outside the API.
+    */
+
+    'public_ttl' => (int) env('PUBLIC_CACHE_TTL', 600),
+
 ];

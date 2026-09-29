@@ -1,16 +1,19 @@
 # Checkpoint
 
-`Last updated: 2026-09-28 (end of day) · Current phase: Backend LIVE → next: Vercel frontend deploy`
+`Last updated: 2026-09-29 · Current phase: LIVE (Vercel + Render) → performance + smoke test`
 
 ## ▶ Resume here (2026-09-29)
-- Backend API LIVE on Render: https://portfolio-api-podn.onrender.com (Supabase RLS on, Cloudinary keys set)
-- **Next steps, in order:**
-  1. Vercel: Add New → Project → import `Fable07/portfolio` → Root Directory `frontend` → env `VITE_API_URL=https://portfolio-api-podn.onrender.com/api` → Deploy
-  2. Render → Environment: `FRONTEND_URLS=https://<vercel-url>,http://localhost:5173` (exact, no trailing slash); confirm `APP_URL=https://portfolio-api-podn.onrender.com`
-  3. Opus: have Sonnet QA smoke-test the live site (pages, icons, API, contact form, CSP console errors, Cloudinary upload)
-  4. Admin account: `php artisan admin:create` (skip if one exists)
-- **Open:** GitHub Actions blocked by account billing lock → Render auto-deploy (checksPass) never fires; deploy manually or switch `render.yaml` to `autoDeployTrigger: commit`.
-- Environment strategy: `main` = production (1 Render service + Vercel), `dev` = local only (see PLAN.md §9).
+- **Site LIVE**: frontend on Vercel (production = `main`), API https://portfolio-api-podn.onrender.com. `FRONTEND_URLS` on Render set to the Vercel origin + localhost.
+- Release flow: work on `dev` → `git push origin dev` → `git push origin dev:main` (fast-forward only).
+- Render auto-deploy switched to **On Commit** (dashboard + render.yaml, 7416a4c) because GitHub Actions is billing-locked. Revert to `checksPass` in both places once Actions runs again.
+- vercel.json `ignoreCommand` removed (418dcd7): it made Vercel skip Redeploys, so env-var changes never built.
+- Slowness diagnosed: Render = Singapore, Supabase = Sydney (ap-southeast-2) → data calls ~1.3–1.9 s warm vs /up ~0.4 s. Fix: public GET responses cached (CachePublicResponse, flushed on admin writes by FlushPublicCache, TTL `PUBLIC_CACHE_TTL`=600 s for edits made outside the API, e.g. local dev on the shared DB).
+- **Next steps:**
+  1. Push the caching commit to main → Render redeploys → verify `X-Cache: HIT` on /api/projects and timings.
+  2. Owner: UptimeRobot HTTP monitor on https://portfolio-api-podn.onrender.com/up every 5 min (prevents cold starts).
+  3. Owner to clarify what "stale" pages means (old content vs stuck loading).
+  4. Smoke test the live site (pages, icons, contact form, CSP console errors, Cloudinary upload); `admin:create` if no admin exists.
+  5. Fix GitHub billing lock → CI runs again → switch Render back to checksPass.
 - The sections below are the detailed history; this block is the current truth.
 
 ## Where we are
@@ -80,3 +83,4 @@ Tell Claude: **"Winky dinky"** (resume phrase, defined in CLAUDE.md) The root `C
 - **2026-09-28** — Phase 4 in progress: Cloudinary account + Render Blueprint created by owner. First Render build failed (composer missing in runtime stage, exit 127). Fixed in f34bd18 along with 3 latent boot bugs (libpq, busybox mkdir, missing resources/views). Owner to push and redeploy.
 - **2026-09-28** — Render LIVE at https://portfolio-api-podn.onrender.com (manual deploy). /up, /api/projects, /api/visitors/count OK against Supabase. Auto-deploy blocked: GitHub Actions not running ("account is locked due to a billing issue") so checksPass never fires — owner to fix billing or switch render.yaml to autoDeployTrigger: commit. Next: APP_URL on Render, Vercel import (root=frontend, VITE_API_URL=https://portfolio-api-podn.onrender.com/api), then FRONTEND_URLS.
 - **2026-09-28** — S1 closed: owner enabled RLS on all public tables; live API re-tested (projects, hobbies, resume, visitors, login 422 on bad creds) — all OK.
+- **2026-09-29** — Frontend deployed to Vercel (old Vercel project deleted; env `VITE_API_URL` fixed after build skipped by ignoreCommand). CORS wired. Render auto-deploy → On Commit. Added public-response caching (+5 tests, 39 pass / 188 assertions).
