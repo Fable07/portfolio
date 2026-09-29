@@ -12,8 +12,9 @@ services:
     rootDir: backend
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    # Only deploy once GitHub's checks (the backend CI workflow) pass on the commit.
-    autoDeployTrigger: checksPass
+    # Deploy on every push to main that touches backend/. Switch back to checksPass
+    # (wait for CI) once GitHub Actions runs again — it is blocked by a billing lock.
+    autoDeployTrigger: commit
     buildFilter:
       paths:
         - backend/**
