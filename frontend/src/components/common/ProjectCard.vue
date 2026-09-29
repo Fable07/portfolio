@@ -109,7 +109,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { countByType, projectCover } from '@/utils/media'
+import { cdnUrl, countByType, projectCover } from '@/utils/media'
 
 const props = defineProps({
   project: { type: Object, required: true },
@@ -121,7 +121,7 @@ const props = defineProps({
 defineEmits(['tag'])
 
 const brokenCover = ref(false)
-const cover = computed(() => projectCover(props.project))
+const cover = computed(() => cdnUrl(projectCover(props.project), { width: 800 }))
 watch(cover, () => (brokenCover.value = false))
 
 /** "Vue, Laravel , PostgreSQL" → ['Vue', 'Laravel', 'PostgreSQL'] */

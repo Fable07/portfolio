@@ -68,7 +68,7 @@
         >
           <img
             v-if="previewUrl(featured)"
-            :src="previewUrl(featured)"
+            :src="cdnUrl(previewUrl(featured), { width: 1280 })"
             :alt="featured.alt || project.title"
             class="aspect-video w-full object-contain"
           />
@@ -111,7 +111,7 @@
             >
               <img
                 v-if="previewUrl(item)"
-                :src="previewUrl(item)"
+                :src="cdnUrl(previewUrl(item), { width: 240 })"
                 alt=""
                 class="size-full object-cover"
                 loading="lazy"
@@ -129,6 +129,23 @@
                 >▶</span
               >
             </button>
+          </li>
+        </ul>
+      </section>
+
+      <!-- ── Documents (PDF reports, slides…) ── -->
+      <section v-if="documents.length" aria-label="Documents" class="mb-8">
+        <h2 class="m-0 mb-2 text-sm font-semibold tracking-wide text-muted uppercase">Documents</h2>
+        <ul class="m-0 flex list-none flex-wrap gap-2 p-0">
+          <li v-for="doc in documents" :key="doc.id">
+            <a
+              :href="doc.url"
+              target="_blank"
+              rel="noopener"
+              class="inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm text-heading no-underline hover:border-accent/40"
+            >
+              <span aria-hidden="true">📄</span>{{ doc.name || 'Document' }} ↗
+            </a>
           </li>
         </ul>
       </section>
@@ -260,7 +277,7 @@ import { computed, ref, watch } from 'vue'
 import { useHead } from '@unhead/vue'
 import { projectsApi } from '@/api'
 import { useProjectsStore } from '@/stores/content'
-import { mediaList, previewUrl, projectCover } from '@/utils/media'
+import { cdnUrl, mediaList, previewUrl, projectCover } from '@/utils/media'
 import AppBreadcrumbs from '@/components/common/AppBreadcrumbs.vue'
 import MediaLightbox from '@/components/common/MediaLightbox.vue'
 import PageSection from '@/components/common/PageSection.vue'
@@ -297,6 +314,9 @@ watch(() => props.id, load, { immediate: true })
 
 const gallery = computed(() =>
   mediaList(project.value?.media).filter((item) => item.type !== 'document'),
+)
+const documents = computed(() =>
+  mediaList(project.value?.media).filter((item) => item.type === 'document'),
 )
 
 /**

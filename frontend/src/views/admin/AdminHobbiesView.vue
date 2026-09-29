@@ -40,8 +40,8 @@
       <template #default="{ item: hobby }">
         <div class="flex flex-wrap items-center gap-3">
           <img
-            v-if="hobby.image?.url"
-            :src="hobby.image.url"
+            v-if="previewUrl(hobbyMedia(hobby).cover)"
+            :src="cdnUrl(previewUrl(hobbyMedia(hobby).cover), { width: 160 })"
             alt=""
             class="h-11 w-16 shrink-0 rounded-lg object-cover"
           />
@@ -136,9 +136,19 @@
       <MediaUploader
         v-model="editor.form.image"
         collection="hobbies"
-        label="Photo (optional)"
-        accept="image/jpeg,image/png,image/webp,image/gif"
+        label="Cover photo (optional)"
+        accept="image/*"
         :error="fieldError('image')"
+      />
+      <MediaUploader
+        v-model="editor.form.media"
+        collection="hobbies"
+        label="Gallery — photos & clips (optional)"
+        multiple
+        allow-embed
+        accept="image/*,video/mp4,video/webm,video/quicktime"
+        hint="Images up to 5 MB · MP4/WebM/MOV clips up to 20 MB · no cover? the first item is used"
+        :error="fieldError('media')"
       />
 
       <template #actions>
@@ -164,6 +174,7 @@ import { useCrudEditor, requiredFields } from '@/composables/useCrudEditor'
 import { useUndoableDelete } from '@/composables/useUndoableDelete'
 import { useAdminHobbiesStore } from '@/stores/content'
 import { useToastStore } from '@/stores/toast'
+import { cdnUrl, hobbyMedia, previewUrl } from '@/utils/media'
 
 const store = useAdminHobbiesStore()
 const toast = useToastStore()
@@ -172,7 +183,8 @@ const { editor, isDirty, fieldError, openCreate, openEdit, closeEditor, save } =
   store,
   {
     label: 'Hobby',
-    emptyForm: { name: '', icon: '', description: '', image: null }, // image: media item JSON
+    // image: cover media item · media: gallery (list of media items)
+    emptyForm: { name: '', icon: '', description: '', image: null, media: [] },
     validate: (form) => requiredFields(form, { name: 'Name' }),
   },
 )

@@ -74,9 +74,22 @@ class MediaTest extends TestCase
         $this->actingAsAdmin();
         $pdf = UploadedFile::fake()->createWithContent('cv.pdf', "%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF");
 
-        $this->upload('projects', $pdf)->assertUnprocessable()->assertJsonValidationErrors('file');
+        $this->upload('hobbies', $pdf)->assertUnprocessable()->assertJsonValidationErrors('file');
         $this->upload('resume', $pdf)->assertCreated()->assertJsonPath('type', 'document');
         $this->upload('resume', $this->png())->assertUnprocessable();
+    }
+
+    public function test_collections_accept_their_new_file_kinds(): void
+    {
+        $this->actingAsAdmin();
+        $pdf = fn () => UploadedFile::fake()->createWithContent('cert.pdf', "%PDF-1.4\n%%EOF");
+        $mp4 = fn () => UploadedFile::fake()->createWithContent('clip.mp4', "\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom");
+
+        $this->upload('certifications', $pdf())->assertCreated()->assertJsonPath('type', 'document');
+        $this->upload('projects', $pdf())->assertCreated()->assertJsonPath('type', 'document');
+        $this->upload('hobbies', $mp4())->assertCreated()->assertJsonPath('type', 'video');
+        $this->upload('profile', $mp4())->assertCreated()->assertJsonPath('type', 'video');
+        $this->upload('certifications', $mp4())->assertUnprocessable();
     }
 
     public function test_svg_uploads_are_rejected(): void
@@ -205,6 +218,49 @@ class MediaTest extends TestCase
 
         Storage::disk('public')->assertMissing($pdf['key']);
         $this->assertSame(1, Resume::count());
+    }
+
+    public function test_hobby_gallery_is_saved_and_removed_items_are_deleted(): void
+    {
+        $this->actingAsAdmin();
+        $photo = $this->upload('hobbies', $this->png())->json();
+        $clip = $this->postJson('/api/media/embed', ['url' => 'https://youtu.be/dQw4w9WgXcQ'])->json();
+
+        $id = $this->postJson('/api/hobbies', ['name' => 'Basketball', 'media' => [$photo, $clip]])
+            ->assertCreated()
+            ->assertJsonCount(2, 'media')
+            ->json('id');
+        $this->getJson('/api/hobbies')->assertJsonPath('0.media.1.provider', 'youtube');
+
+        $this->putJson("/api/hobbies/{$id}", ['media' => [$clip]])->assertOk()->assertJsonCount(1, 'media');
+        Storage::disk('public')->assertMissing($photo['key']);
+    }
+
+    public function test_media_types_are_limited_per_field(): void
+    {
+        $this->actingAsAdmin();
+        $pdf = $this->upload('certifications', UploadedFile::fake()->createWithContent('c.pdf', "%PDF-1.4\n%%EOF"))->json();
+
+        $this->postJson('/api/hobbies', ['name' => 'H', 'media' => [$pdf]])->assertJsonValidationErrors('media.0.type');
+        $this->postJson('/api/hobbies', ['name' => 'H', 'image' => $pdf])->assertJsonValidationErrors('image.type');
+        $this->putJson('/api/profile', ['name' => 'Me', 'avatar' => $pdf])->assertJsonValidationErrors('avatar.type');
+    }
+
+    public function test_certificate_pdf_uses_its_preview_as_the_badge_image(): void
+    {
+        $this->actingAsAdmin();
+        $pdf = $this->upload('certifications', UploadedFile::fake()->createWithContent('c.pdf', "%PDF-1.4\n%%EOF"))->json();
+
+        // Local storage has no preview renderer: no badge image, the PDF itself stays on the badge item
+        $this->postJson('/api/certifications', ['title' => 'Local', 'badge' => $pdf])
+            ->assertCreated()
+            ->assertJsonPath('badge_url', null)
+            ->assertJsonPath('badge.type', 'document');
+
+        // Cloudinary items carry a page-1 preview, which becomes the badge image
+        $cloud = [...$pdf, 'provider' => 'cloudinary', 'thumbnail_url' => 'https://res.cloudinary.com/demo/image/upload/pg_1/c.jpg'];
+        $this->postJson('/api/certifications', ['title' => 'Cloud', 'badge' => $cloud])
+            ->assertJsonPath('badge_url', $cloud['thumbnail_url']);
     }
 
     /* ── Regression ─────────────────────────────────────────── */

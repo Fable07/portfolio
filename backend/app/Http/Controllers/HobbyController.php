@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Hobby;
 use App\Support\MediaRules;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class HobbyController extends Controller
 {
@@ -67,6 +68,9 @@ class HobbyController extends Controller
             'description' => ['nullable', 'string', 'max:2000'],
             'order' => ['nullable', 'integer'],
             ...MediaRules::one('image'),
+            'image.type' => ['required_with:image', Rule::in(['image'])],
+            ...MediaRules::many('media', config('media.max_gallery_items')),
+            'media.*.type' => ['required', Rule::in(['image', 'video', 'embed'])],
         ]);
     }
 }

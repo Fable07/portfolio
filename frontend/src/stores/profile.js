@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { profileApi } from '@/api'
 import { DEFAULT_AVATAR, defaultProfile } from '@/config/profile'
 import { resolveIcon } from '@/utils/icons'
-import { cloneMedia } from '@/utils/media'
+import { cloneMedia, previewUrl } from '@/utils/media'
 
 /**
  * Profile store — "about the owner" content (name, roles, skills, socials…).
@@ -36,7 +36,9 @@ export const useProfileStore = defineStore('profile', () => {
       availability: data.availability || '',
       roles: data.roles?.length ? data.roles : [''],
       about: data.about ?? [],
-      avatarUrl: data.avatar?.url || DEFAULT_AVATAR,
+      // A video avatar is a "moving portrait": its first frame is the still photo
+      avatarVideo: data.avatar?.type === 'video' ? data.avatar : null,
+      avatarUrl: previewUrl(data.avatar) || DEFAULT_AVATAR,
       avatarAlt: data.avatar?.alt || `Photo of ${data.name}`,
       skillGroups: (data.skill_groups ?? []).map((group) => ({
         title: group.title,

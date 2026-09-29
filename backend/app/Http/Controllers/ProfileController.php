@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Profile;
 use App\Support\MediaRules;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * ProfileController — the site owner's profile (single record).
@@ -40,6 +41,8 @@ class ProfileController extends Controller
             'about.*' => ['required', 'string', 'max:2000'],
 
             ...MediaRules::one('avatar'),
+            // A video avatar shows its first frame and plays on hover
+            'avatar.type' => ['required_with:avatar', Rule::in(['image', 'video'])],
 
             'skill_groups' => ['nullable', 'array', 'list', 'max:12'],
             'skill_groups.*.title' => ['required', 'string', 'max:60'],
@@ -47,6 +50,7 @@ class ProfileController extends Controller
             'skill_groups.*.skills.*.name' => ['required', 'string', 'max:60'],
             'skill_groups.*.skills.*.icon' => ['nullable', 'string', 'max:80', self::ICON_KEY],
             ...MediaRules::one('skill_groups.*.skills.*.icon_media'),
+            'skill_groups.*.skills.*.icon_media.type' => ['required_with:skill_groups.*.skills.*.icon_media', Rule::in(['image'])],
 
             'social_links' => ['nullable', 'array', 'list', 'max:15'],
             'social_links.*.label' => ['required', 'string', 'max:40'],

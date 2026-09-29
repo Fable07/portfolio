@@ -12,8 +12,19 @@
       <header
         class="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-start sm:text-left"
       >
+        <!-- Video avatar = moving portrait: still until hovered (tap on touch screens) -->
+        <HoverVideo
+          v-if="profile.avatarVideo"
+          :src="profile.avatarVideo.url"
+          :poster="profile.avatarVideo.thumbnail_url || ''"
+          :alt="profile.avatarAlt"
+          :width="400"
+          preload="auto"
+          class="size-32 shrink-0 cursor-pointer rounded-2xl border border-line object-cover p-1.5 shadow-[0_8px_30px_rgba(2,6,12,0.45)] sm:size-40 lg:size-44"
+        />
         <img
-          :src="profile.avatarUrl"
+          v-else
+          :src="cdnUrl(profile.avatarUrl, { width: 400 })"
           :alt="profile.avatarAlt"
           class="size-32 shrink-0 rounded-2xl border border-line object-cover p-1.5 shadow-[0_8px_30px_rgba(2,6,12,0.45)] sm:size-40 lg:size-44"
           width="176"
@@ -150,11 +161,13 @@
 <script setup>
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import HoverVideo from '@/components/common/HoverVideo.vue'
 import PageSection from '@/components/common/PageSection.vue'
 import ProjectCard from '@/components/common/ProjectCard.vue'
 import { useTypewriter } from '@/composables/useTypewriter'
 import { useProjectsStore } from '@/stores/content'
 import { useProfileStore } from '@/stores/profile'
+import { cdnUrl } from '@/utils/media'
 
 const router = useRouter()
 const profileStore = useProfileStore()

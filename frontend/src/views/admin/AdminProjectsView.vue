@@ -227,8 +227,8 @@
         label="Gallery"
         multiple
         allow-embed
-        accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm"
-        hint="Images up to 5 MB · MP4/WebM videos up to 35 MB · first image = cover"
+        accept="image/*,video/mp4,video/webm,video/quicktime,application/pdf"
+        hint="Images up to 5 MB · MP4/WebM/MOV videos up to 20 MB · PDFs up to 10 MB · first image = cover"
         :error="fieldError('media')"
       />
 

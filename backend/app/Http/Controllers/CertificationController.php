@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Certification;
 use App\Support\MediaRules;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CertificationController extends Controller
 {
@@ -62,6 +63,7 @@ class CertificationController extends Controller
             'order' => ['nullable', 'integer'],
             'is_published' => ['sometimes', 'boolean'],
             ...MediaRules::one('badge'),
+            'badge.type' => ['required_with:badge', Rule::in(['image', 'document'])], // badge image or certificate PDF
         ]);
     }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fuzzyFilter, fuzzyMatch, highlightParts } from '../fuzzy'
-import { countByType, formatBytes, mediaList, projectCover } from '../media'
+import { cdnUrl, countByType, formatBytes, mediaList, projectCover } from '../media'
 import { isSafeLink, urlFields } from '../validation'
 import { iconOptions, resolveIcon } from '../icons'
 
@@ -47,6 +47,22 @@ describe('media helpers', () => {
     expect(projectCover({ media: gallery })).toBe('https://cdn/x.png')
     expect(projectCover({ media: [gallery[0]] })).toBe('https://i.ytimg.com/x.jpg')
     expect(projectCover({ media: null, thumbnail_url: '/old.png' })).toBe('/old.png')
+  })
+
+  it('adds Cloudinary optimisation steps and leaves other URLs alone', () => {
+    const base = 'https://res.cloudinary.com/demo'
+    expect(cdnUrl(`${base}/image/upload/v1/p/x.png`, { width: 800 })).toBe(
+      `${base}/image/upload/f_auto,q_auto,c_limit,w_800/v1/p/x.png`,
+    )
+    // Existing steps (a video poster frame) run first
+    expect(cdnUrl(`${base}/video/upload/so_0/v1/c.jpg`, { width: 400 })).toBe(
+      `${base}/video/upload/so_0/f_auto,q_auto,c_limit,w_400/v1/c.jpg`,
+    )
+    expect(cdnUrl(`${base}/video/upload/v1/c.mp4`, { video: true })).toBe(
+      `${base}/video/upload/q_auto/v1/c.mp4`,
+    )
+    expect(cdnUrl('/profile.jpg', { width: 800 })).toBe('/profile.jpg')
+    expect(cdnUrl(null)).toBe('')
   })
 
   it('counts and formats', () => {

@@ -38,24 +38,26 @@ return [
 
     /*
     | File kinds: accepted extensions and max size in kilobytes.
-    | Keep video max below PHP's upload_max_filesize / post_max_size (php.ini).
+    | Keep video max below PHP's upload_max_filesize (24M in docker/php.ini).
     | SVG is intentionally not allowed — it can carry scripts.
+    | MOV (phone clips) is served as MP4 by Cloudinary; with the local driver only
+    | browsers that support QuickTime can play it.
     */
     'kinds' => [
-        'image' => ['mimes' => ['jpg', 'jpeg', 'png', 'webp', 'gif'], 'max_kb' => (int) env('MEDIA_MAX_IMAGE_KB', 5120)],
-        'video' => ['mimes' => ['mp4', 'webm'], 'max_kb' => (int) env('MEDIA_MAX_VIDEO_KB', 35840)],
+        'image' => ['mimes' => ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'bmp'], 'max_kb' => (int) env('MEDIA_MAX_IMAGE_KB', 5120)],
+        'video' => ['mimes' => ['mp4', 'webm', 'mov'], 'max_kb' => (int) env('MEDIA_MAX_VIDEO_KB', 20480)],
         'document' => ['mimes' => ['pdf'], 'max_kb' => (int) env('MEDIA_MAX_DOCUMENT_KB', 10240)],
     ],
 
     // Which file kinds each content type ("collection") may upload
     'collections' => [
-        'projects' => ['image', 'video'],
-        'certifications' => ['image'],
-        'hobbies' => ['image'],
+        'projects' => ['image', 'video', 'document'],
+        'certifications' => ['image', 'document'], // badge image or the certificate PDF
+        'hobbies' => ['image', 'video'], // cover photo and a gallery of short clips
         'resume' => ['document'],
-        'profile' => ['image'], // avatar and custom skill icons
+        'profile' => ['image', 'video'], // avatar (a video avatar plays on hover) and skill icons
     ],
 
-    // Max items in a project gallery
+    // Max items in a project or hobby gallery
     'max_gallery_items' => 30,
 ];

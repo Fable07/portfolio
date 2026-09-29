@@ -128,9 +128,9 @@
         <MediaUploader
           v-model="form.avatar"
           collection="profile"
-          label="Photo"
-          accept="image/jpeg,image/png,image/webp"
-          hint="Square image works best · falls back to public/profile.jpg"
+          label="Photo or moving portrait"
+          accept="image/*,video/mp4,video/webm,video/quicktime"
+          hint="Square works best · a short video (2–5 s) shows its first frame and plays on hover · falls back to public/profile.jpg"
           :error="errorFor('avatar')"
         />
       </fieldset>

@@ -17,12 +17,14 @@ class Hobby extends Model
         'icon',
         'description',
         'image',
+        'media',
         'order',
     ];
 
     protected $casts = [
-        'image' => 'array', // optional photo: single MediaItem or null
+        'image' => 'array', // optional cover photo: single MediaItem or null
+        'media' => 'array', // gallery: list of MediaItems (photos, clips, embeds) or null
     ];
 
-    protected array $mediaColumns = ['image'];
+    protected array $mediaColumns = ['image', 'media'];
 }

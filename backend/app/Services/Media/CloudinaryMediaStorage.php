@@ -44,11 +44,14 @@ class CloudinaryMediaStorage implements MediaStorage
             'timestamp' => time(),
         ];
 
-        $resourceType = match ($kind) {
-            'video' => 'video',
-            'document' => 'raw',
-            default => 'image',
-        };
+        // PDFs go in as "image" resources so Cloudinary can render page 1 as a preview.
+        // (Free accounts must allow PDF delivery: Settings → Security → "Allow delivery of PDF and ZIP files".)
+        $resourceType = $kind === 'video' ? 'video' : 'image';
+
+        if ($kind === 'image') {
+            // Cap stored size: phone photos shrink to 2560 px, smaller images are untouched
+            $params['transformation'] = 'c_limit,w_2560,h_2560';
+        }
 
         $response = Http::asMultipart()
             ->attach('file', fopen($file->getRealPath(), 'r'), $file->getClientOriginalName())
@@ -56,10 +59,13 @@ class CloudinaryMediaStorage implements MediaStorage
             ->throw()
             ->json();
 
+        $url = $response['secure_url'];
+
         return MediaItem::make([
             'type' => $kind,
             'provider' => $this->provider(),
-            'url' => $response['secure_url'],
+            // Videos are delivered as MP4 (Cloudinary transcodes on the fly, e.g. iPhone .mov)
+            'url' => $kind === 'video' ? preg_replace('#\.\w+$#', '.mp4', $url) : $url,
             'key' => $response['public_id'],
             'resource_type' => $response['resource_type'] ?? $resourceType,
             'mime' => $file->getMimeType(),
@@ -67,10 +73,12 @@ class CloudinaryMediaStorage implements MediaStorage
             'width' => $response['width'] ?? null,
             'height' => $response['height'] ?? null,
             'name' => Str::limit($file->getClientOriginalName(), 200, ''),
-            // Cloudinary can render a poster frame from a video: first frame as JPG
-            'thumbnail_url' => $kind === 'video'
-                ? preg_replace('#/upload/(.+)\.\w+$#', '/upload/so_0/$1.jpg', $response['secure_url'])
-                : null,
+            // Preview image rendered by Cloudinary: a video's first frame, a PDF's first page
+            'thumbnail_url' => match ($kind) {
+                'video' => preg_replace('#/upload/(.+)\.\w+$#', '/upload/so_0/$1.jpg', $url),
+                'document' => preg_replace('#/upload/(.+)\.\w+$#', '/upload/pg_1,w_1200,c_limit/$1.jpg', $url),
+                default => null,
+            },
         ]);
     }
 

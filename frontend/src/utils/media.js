@@ -13,10 +13,31 @@ export function mediaList(value) {
   return Array.isArray(value) ? value.filter(Boolean) : [value]
 }
 
-/** Best preview image for an item: the image itself, or a video/embed thumbnail. */
+/** Best preview image for an item: the image itself, or a video/embed/PDF thumbnail. */
 export function previewUrl(item) {
   if (!item) return ''
   return item.type === 'image' ? item.url : item.thumbnail_url || ''
+}
+
+/**
+ * Ask Cloudinary for an optimised copy: modern format (AVIF/WebP), automatic quality,
+ * and no wider than `width` px. Other URLs (local uploads, /public files) pass through.
+ *   cdnUrl(item.url, { width: 800 })            image
+ *   cdnUrl(item.url, { width: 720, video: true }) video (quality + size only)
+ */
+export function cdnUrl(url, { width, video = false } = {}) {
+  const match = /^(https:\/\/res\.cloudinary\.com\/[^/]+\/(?:image|video)\/upload\/)(.+)$/.exec(
+    url || '',
+  )
+  if (!match) return url || ''
+
+  const steps = [video ? 'q_auto' : 'f_auto,q_auto', width && `c_limit,w_${width}`]
+  const transform = steps.filter(Boolean).join(',')
+  // Add our step after any existing ones (e.g. a video poster's so_0) and before the version
+  const parts = match[2].split('/')
+  const versionAt = parts.findIndex((part) => /^v\d+$/.test(part))
+  parts.splice(versionAt === -1 ? parts.length - 1 : versionAt, 0, transform)
+  return match[1] + parts.join('/')
 }
 
 /** Cover image for a project card: first image in the gallery, else any thumbnail, else the legacy URL. */
@@ -24,6 +45,25 @@ export function projectCover(project) {
   const items = mediaList(project?.media)
   const image = items.find((item) => item.type === 'image')
   return image?.url || items.map(previewUrl).find(Boolean) || project?.thumbnail_url || ''
+}
+
+/** Certification badge image: uploaded badge (or a certificate PDF's preview), then a pasted URL. */
+export function badgeImage(cert) {
+  return previewUrl(cert?.badge) || cert?.badge_url || ''
+}
+
+/** The certificate PDF, when the badge upload is a document. */
+export function certificatePdf(cert) {
+  return cert?.badge?.type === 'document' ? cert.badge.url : ''
+}
+
+/**
+ * Hobby card media: the cover photo plus the gallery, in viewing order.
+ * `cover` is the item shown on the card — the cover photo, else the first gallery item.
+ */
+export function hobbyMedia(hobby) {
+  const items = [...mediaList(hobby?.image), ...mediaList(hobby?.media)]
+  return { items, cover: items[0] ?? null }
 }
 
 /** Count items per type, e.g. { image: 3, video: 1, embed: 1, document: 0 } */

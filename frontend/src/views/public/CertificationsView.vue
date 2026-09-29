@@ -65,6 +65,16 @@
           >
             View credential ↗
           </a>
+          <a
+            v-if="certificatePdf(cert)"
+            :href="certificatePdf(cert)"
+            target="_blank"
+            rel="noopener"
+            class="mt-2 inline-block text-xs font-semibold text-accent no-underline hover:underline"
+            :class="{ 'ml-3': cert.credential_url }"
+          >
+            View certificate (PDF) ↗
+          </a>
         </div>
       </li>
     </ul>
@@ -77,14 +87,14 @@ import { useCertificationsStore } from '@/stores/content'
 import PageSection from '@/components/common/PageSection.vue'
 import SkeletonBlock from '@/components/common/SkeletonBlock.vue'
 import StateMessage from '@/components/common/StateMessage.vue'
+import { badgeImage, cdnUrl, certificatePdf } from '@/utils/media'
 
 const store = useCertificationsStore()
 
 // IDs whose badge image failed to load (tracked here so shared store data isn't modified)
 const brokenBadges = reactive(new Set())
 
-/** Uploaded badge first, then a pasted badge URL */
-const badgeUrl = (cert) => cert.badge?.url || cert.badge_url
+const badgeUrl = (cert) => cdnUrl(badgeImage(cert), { width: 160 })
 
 onMounted(() => store.load())
 </script>

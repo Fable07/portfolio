@@ -1,5 +1,5 @@
 <!--
-  MediaLightbox — full-screen viewer for a gallery (images, videos, YouTube/Vimeo embeds).
+  MediaLightbox — full-screen viewer for a gallery (images, videos, YouTube/Vimeo embeds, PDFs).
 
   <MediaLightbox v-model:index="openIndex" :items="project.media" :title="project.title" />
   `index` null = closed. Keyboard: ← / → to browse, Esc to close.
@@ -45,14 +45,14 @@
           <img
             v-if="current.type === 'image'"
             :key="current.id"
-            :src="current.url"
+            :src="cdnUrl(current.url, { width: 1920 })"
             :alt="current.alt || title"
             class="max-h-full max-w-full rounded-lg object-contain"
           />
           <video
             v-else-if="current.type === 'video'"
             :key="current.id"
-            :src="current.url"
+            :src="cdnUrl(current.url, { video: true })"
             :poster="current.thumbnail_url || undefined"
             controls
             autoplay
@@ -75,6 +75,26 @@
             referrerpolicy="strict-origin-when-cross-origin"
             allowfullscreen
           ></iframe>
+
+          <div
+            v-else-if="current.type === 'document'"
+            :key="current.id"
+            class="flex size-full max-w-5xl flex-col items-center gap-3"
+          >
+            <iframe
+              :src="current.url"
+              :title="current.name || `${title} document`"
+              class="min-h-0 w-full flex-1 rounded-lg border-0 bg-white"
+            ></iframe>
+            <a
+              :href="current.url"
+              target="_blank"
+              rel="noopener"
+              class="rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-sm text-white no-underline hover:bg-white/20"
+            >
+              Open PDF in a new tab ↗
+            </a>
+          </div>
 
           <template v-if="items.length > 1">
             <button
@@ -104,6 +124,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { onKeyStroke, useScrollLock } from '@vueuse/core'
 import { useFocusTrap } from '@vueuse/integrations/useFocusTrap'
+import { cdnUrl } from '@/utils/media'
 
 const props = defineProps({
   items: { type: Array, required: true },

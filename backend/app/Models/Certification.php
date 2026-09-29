@@ -34,13 +34,22 @@ class Certification extends Model
             if (! $certification->isDirty('badge')) {
                 return;
             }
-            $previousUrl = $certification->getOriginal('badge')['url'] ?? null;
+            $previousUrl = self::badgeImageUrl($certification->getOriginal('badge'));
+            $imageUrl = self::badgeImageUrl($certification->badge);
 
-            if (! empty($certification->badge['url'])) {
-                $certification->badge_url = $certification->badge['url'];
+            if ($imageUrl) {
+                $certification->badge_url = $imageUrl;
             } elseif ($previousUrl && $certification->badge_url === $previousUrl) {
                 $certification->badge_url = null; // badge removed — don't point at a deleted file
             }
         });
+    }
+
+    /** Image to show for a badge item — for a certificate PDF, its page-1 preview (Cloudinary only). */
+    private static function badgeImageUrl(?array $badge): ?string
+    {
+        $url = ($badge['type'] ?? null) === 'document' ? ($badge['thumbnail_url'] ?? null) : ($badge['url'] ?? null);
+
+        return $url ?: null;
     }
 }

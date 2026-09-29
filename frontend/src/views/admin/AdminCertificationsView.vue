@@ -181,8 +181,9 @@
       <MediaUploader
         v-model="editor.form.badge"
         collection="certifications"
-        label="Badge / certificate image"
-        accept="image/jpeg,image/png,image/webp,image/gif"
+        label="Badge image or certificate PDF"
+        accept="image/*,application/pdf"
+        hint="Images up to 5 MB · PDF up to 10 MB (page 1 becomes the preview)"
         :error="fieldError('badge')"
       />
       <FormField
@@ -227,6 +228,7 @@ import { useCrudEditor, requiredFields } from '@/composables/useCrudEditor'
 import { useUndoableDelete } from '@/composables/useUndoableDelete'
 import { useAdminCertificationsStore } from '@/stores/content'
 import { useToastStore } from '@/stores/toast'
+import { badgeImage, cdnUrl } from '@/utils/media'
 import { urlFields } from '@/utils/validation'
 
 const store = useAdminCertificationsStore()
@@ -240,8 +242,7 @@ const visible = computed(() => {
     : store.items
 })
 
-/** Uploaded badge first, then a pasted badge URL */
-const badgeUrl = (cert) => cert.badge?.url || cert.badge_url
+const badgeUrl = (cert) => cdnUrl(badgeImage(cert), { width: 160 })
 
 const { editor, isDirty, fieldError, openCreate, openEdit, closeEditor, save } = useCrudEditor(
   store,
