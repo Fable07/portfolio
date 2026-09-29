@@ -65,6 +65,39 @@ class CloudinaryUploadTest extends TestCase
         Http::assertSent(fn (Request $request) => ! str_contains($request->body(), 'c_limit,w_2560'));
     }
 
+    public function test_deleting_content_destroys_the_asset_and_purges_the_cdn(): void
+    {
+        Http::fake(['api.cloudinary.com/v1_1/demo/video/destroy' => Http::response(['result' => 'ok'])]);
+        $clip = [
+            'id' => 'c1', 'type' => 'video', 'provider' => 'cloudinary', 'resource_type' => 'video',
+            'url' => self::BASE.'/video/upload/v1/portfolio-test/hobbies/abc.mp4', 'key' => 'portfolio-test/hobbies/abc',
+        ];
+        $id = $this->postJson('/api/hobbies', ['name' => 'H', 'media' => [$clip]])->assertCreated()->json('id');
+
+        $this->deleteJson("/api/hobbies/{$id}")->assertOk();
+
+        Http::assertSent(fn (Request $request) => $request['public_id'] === 'portfolio-test/hobbies/abc'
+            && $request['invalidate'] === 'true');
+    }
+
+    public function test_stored_lists_every_resource_type_across_pages(): void
+    {
+        Http::fake([
+            'api.cloudinary.com/v1_1/demo/resources/image/upload*' => Http::sequence()
+                ->push(['resources' => [['public_id' => 'portfolio-test/a', 'created_at' => '2026-01-01T00:00:00Z']], 'next_cursor' => 'n2'])
+                ->push(['resources' => [['public_id' => 'portfolio-test/b', 'created_at' => '2026-01-02T00:00:00Z']]]),
+            'api.cloudinary.com/v1_1/demo/resources/video/upload*' => Http::response(['resources' => [['public_id' => 'portfolio-test/c', 'created_at' => '2026-01-03T00:00:00Z']]]),
+            'api.cloudinary.com/v1_1/demo/resources/raw/upload*' => Http::response(['resources' => []]),
+        ]);
+
+        $stored = collect(app(\App\Services\Media\MediaManager::class)->uploads()->stored());
+
+        $this->assertSame(['portfolio-test/a', 'portfolio-test/b', 'portfolio-test/c'], $stored->pluck('key')->all());
+        $this->assertSame('video', $stored[2]['resource_type']);
+        Http::assertSent(fn (Request $request) => str_contains($request->url(), 'next_cursor=n2')
+            && str_contains($request->url(), 'prefix=portfolio-test%2F'));
+    }
+
     public function test_images_are_capped_at_upload_and_the_cap_is_signed(): void
     {
         $this->fakeUpload('image', 'photo.png');

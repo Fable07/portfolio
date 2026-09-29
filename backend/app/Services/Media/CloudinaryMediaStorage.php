@@ -3,6 +3,7 @@
 namespace App\Services\Media;
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -92,10 +93,45 @@ class CloudinaryMediaStorage implements MediaStorage
 
         $resourceType = $item['resource_type'] ?? 'image';
 
-        Http::asForm()->post(
+        // invalidate: also purge CDN copies, so a deleted file stops loading right away
+        $result = Http::asForm()->post(
             $this->endpoint("{$resourceType}/destroy"),
-            $this->signed(['public_id' => $publicId, 'timestamp' => time()]),
-        );
+            $this->signed(['invalidate' => 'true', 'public_id' => $publicId, 'timestamp' => time()]),
+        )->throw()->json('result');
+
+        // "not found" = already gone, which is fine; anything else is a real failure (logged by MediaManager)
+        if (! in_array($result, ['ok', 'not found'], true)) {
+            throw new RuntimeException("Cloudinary could not delete {$publicId}: ".json_encode($result));
+        }
+    }
+
+    /** Lists every asset under our folder via the Admin API (all resource types, paginated). */
+    public function stored(): iterable
+    {
+        $this->assertConfigured();
+
+        foreach (['image', 'video', 'raw'] as $resourceType) {
+            $cursor = null;
+            do {
+                $page = Http::withBasicAuth($this->config['api_key'], $this->config['api_secret'])
+                    ->get($this->endpoint("resources/{$resourceType}/upload"), array_filter([
+                        'prefix' => "{$this->folder}/",
+                        'max_results' => 500,
+                        'next_cursor' => $cursor,
+                    ]))
+                    ->throw()
+                    ->json();
+
+                foreach ($page['resources'] ?? [] as $resource) {
+                    yield [
+                        'key' => $resource['public_id'],
+                        'resource_type' => $resourceType,
+                        'created_at' => Carbon::parse($resource['created_at']),
+                    ];
+                }
+                $cursor = $page['next_cursor'] ?? null;
+            } while ($cursor);
+        }
     }
 
     /** Cloudinary signature: sha1 of sorted "key=value&…" params + API secret. */

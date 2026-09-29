@@ -12,6 +12,9 @@
 - Live site: https://jscaragay-portfolio.vercel.app
 - Media features committed on `dev` (7b47a1f, NOT on main yet): video avatar plays on hover, hobby galleries (new nullable `hobbies.media` column), certificate/project PDFs with Cloudinary page-1 previews, f_auto/q_auto delivery, video limit 20 MB. Backend 46 tests, frontend 46 tests, build OK. Not yet tried in a browser.
 - **Before pushing 7b47a1f to main:** (a) owner sets `RUN_MIGRATIONS=true` in Render dashboard (render.yaml already says true → deploy auto-migrates, adds nullable hobbies.media); (b) Cloudinary → Settings → Security → enable "Allow delivery of PDF and ZIP files" (PDFs are now image resources).
+- Media features + auto-migrate LIVE (3b4af02, hobbies.media migrated by Render on deploy).
+- Media cleanup (on dev): Cloudinary deletes now purge the CDN (`invalidate`) and surface failures in logs; `php artisan media:prune` (dry run; `--force` deletes files unreferenced for 24 h+). Cloudinary folders already per collection: `portfolio/{profile,certifications,resume,projects,hobbies}`.
+- ⚠ Local `backend/.env` has `MEDIA_DRIVER=local` → uploads from local admin land on the PC with 127.0.0.1 URLs in the shared DB. Owner to set `MEDIA_DRIVER=cloudinary` + `CLOUDINARY_*` locally (keep `MEDIA_FOLDER=portfolio`).
 - **Next steps:**
   1. Owner: reset admin password with `php artisan admin:create <email>` (forgot credentials).
   2. Owner to clarify what "stale" pages means (old content vs stuck loading).
