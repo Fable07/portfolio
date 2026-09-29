@@ -10,6 +10,8 @@
 - Slowness diagnosed: Render = Singapore, Supabase = Sydney (ap-southeast-2) → data calls ~1.3–1.9 s warm vs /up ~0.4 s. Fix: public GET responses cached (CachePublicResponse, flushed on admin writes by FlushPublicCache, TTL `PUBLIC_CACHE_TTL`=600 s for edits made outside the API, e.g. local dev on the shared DB).
 - Caching live (d784c27): cached calls ~0.46 s vs ~1.5 s. Automated smoke test passed (routes, static files, CORS, headers, auth 401/422, APP_DEBUG off). Resume PDF iframe CSP fixed (ff510c2). UptimeRobot skipped by owner (accepts cold starts).
 - Live site: https://jscaragay-portfolio.vercel.app
+- Media features committed on `dev` (7b47a1f, NOT on main yet): video avatar plays on hover, hobby galleries (new nullable `hobbies.media` column), certificate/project PDFs with Cloudinary page-1 previews, f_auto/q_auto delivery, video limit 20 MB. Backend 46 tests, frontend 46 tests, build OK. Not yet tried in a browser.
+- **Before pushing 7b47a1f to main:** (a) owner runs `php artisan migrate:status` then `php artisan migrate` locally (shared DB; additive column only, no new table → no RLS step); (b) Cloudinary → Settings → Security → enable "Allow delivery of PDF and ZIP files" (PDFs are now image resources).
 - **Next steps:**
   1. Owner: reset admin password with `php artisan admin:create <email>` (forgot credentials).
   2. Owner to clarify what "stale" pages means (old content vs stuck loading).
