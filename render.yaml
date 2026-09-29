@@ -42,8 +42,10 @@ services:
         value: cloudinary
       - key: MEDIA_FOLDER
         value: portfolio
+      # Owner decision (2026-09-29): migrate on every deploy. The DB is shared with local
+      # dev, so review migrations before pushing to main — never drop/rename without a plan.
       - key: RUN_MIGRATIONS
-        value: "false"
+        value: "true"
       - key: SANCTUM_EXPIRATION
         value: "1440"
       # Secrets — set these in the Render dashboard, never here.

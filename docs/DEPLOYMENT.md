@@ -35,14 +35,9 @@ git checkout main && git merge --no-ff dev && git push
 # Auto-deploy starts (Vercel if frontend/ changed, Render if backend/ changed and CI passes)
 ```
 
-**Migration rule**: Migrations hit the shared database, so run them only from the release branch (`main`) before the next push:
+**Migration rule**: Render runs pending migrations automatically on every deploy (`RUN_MIGRATIONS=true`, see `backend/docker/entrypoint.sh`). If a migration fails, the deploy fails and the previous version keeps serving. Migrations hit the shared database, so keep them additive and review them before pushing to `main`. If a migration creates a table, run the RLS SQL in §1 afterwards.
 
-```bash
-# Run ONCE after merging to main (before pushing again)
-cd backend && php artisan migrate --force
-```
-
-Then re-check out `dev` and continue.
+Don't run `php artisan migrate` locally on `dev` for unreleased migrations: the live database would change before the matching code is deployed.
 
 ## 2. Supabase (database)
 
