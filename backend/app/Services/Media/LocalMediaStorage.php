@@ -3,6 +3,7 @@
 namespace App\Services\Media;
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -59,6 +60,17 @@ class LocalMediaStorage implements MediaStorage
         }
 
         Storage::disk($this->disk)->delete($key);
+    }
+
+    public function stored(): iterable
+    {
+        $disk = Storage::disk($this->disk);
+
+        foreach ($disk->allFiles($this->folder) as $key) {
+            if ($this->ownsKey($key)) {
+                yield ['key' => $key, 'resource_type' => null, 'created_at' => Carbon::createFromTimestamp($disk->lastModified($key))];
+            }
+        }
     }
 
     /** True for keys like "portfolio-dev/projects/<uuid>.png". */

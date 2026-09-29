@@ -37,13 +37,18 @@ trait HasMedia
             app(MediaManager::class)->deleteMany($removed);
         });
 
-        static::deleted(function (self $model) {
-            $all = [];
-            foreach ($model->mediaColumns as $column) {
-                array_push($all, ...$model->mediaIn($column, $model->{$column}));
-            }
-            app(MediaManager::class)->deleteMany($all);
-        });
+        static::deleted(fn (self $model) => app(MediaManager::class)->deleteMany($model->mediaItems()));
+    }
+
+    /** Every media item this record currently references, across all its media columns. */
+    public function mediaItems(): array
+    {
+        $all = [];
+        foreach ($this->mediaColumns as $column) {
+            array_push($all, ...$this->mediaIn($column, $this->{$column}));
+        }
+
+        return $all;
     }
 
     /** Media items stored in a column (default: the column itself is an item or a list of items). */

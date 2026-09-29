@@ -26,4 +26,11 @@ interface MediaStorage
 
     /** Delete the stored file behind a media item. Must not throw if it's already gone. */
     public function delete(array $item): void;
+
+    /**
+     * Every file this driver holds in our media folder (used by `php artisan media:prune`).
+     *
+     * @return iterable<array{key: string, resource_type: ?string, created_at: \Carbon\CarbonInterface}>
+     */
+    public function stored(): iterable;
 }
