@@ -8,12 +8,13 @@
 - Render auto-deploy switched to **On Commit** (dashboard + render.yaml, 7416a4c) because GitHub Actions is billing-locked. Revert to `checksPass` in both places once Actions runs again.
 - vercel.json `ignoreCommand` removed (418dcd7): it made Vercel skip Redeploys, so env-var changes never built.
 - Slowness diagnosed: Render = Singapore, Supabase = Sydney (ap-southeast-2) → data calls ~1.3–1.9 s warm vs /up ~0.4 s. Fix: public GET responses cached (CachePublicResponse, flushed on admin writes by FlushPublicCache, TTL `PUBLIC_CACHE_TTL`=600 s for edits made outside the API, e.g. local dev on the shared DB).
+- Caching live (d784c27): cached calls ~0.46 s vs ~1.5 s. Automated smoke test passed (routes, static files, CORS, headers, auth 401/422, APP_DEBUG off). Resume PDF iframe CSP fixed (ff510c2). UptimeRobot skipped by owner (accepts cold starts).
+- Live site: https://jscaragay-portfolio.vercel.app
 - **Next steps:**
-  1. Push the caching commit to main → Render redeploys → verify `X-Cache: HIT` on /api/projects and timings.
-  2. Owner: UptimeRobot HTTP monitor on https://portfolio-api-podn.onrender.com/up every 5 min (prevents cold starts).
-  3. Owner to clarify what "stale" pages means (old content vs stuck loading).
-  4. Smoke test the live site (pages, icons, contact form, CSP console errors, Cloudinary upload); `admin:create` if no admin exists.
-  5. Fix GitHub billing lock → CI runs again → switch Render back to checksPass.
+  1. Owner: reset admin password with `php artisan admin:create <email>` (forgot credentials).
+  2. Owner to clarify what "stale" pages means (old content vs stuck loading).
+  3. Owner browser checks: console CSP errors, send a contact message, Cloudinary upload. Clean up test data (project "forum website", empty profile).
+  4. Fix GitHub billing lock → CI runs again → switch Render back to checksPass.
 - The sections below are the detailed history; this block is the current truth.
 
 ## Where we are
