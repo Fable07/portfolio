@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -48,6 +49,22 @@ class PublicCacheTest extends TestCase
         $this->getJson('/api/projects')
             ->assertHeader('X-Cache', 'MISS')
             ->assertJsonPath('0.title', 'New title');
+    }
+
+    public function test_a_write_on_another_server_sharing_the_database_clears_it_shortly(): void
+    {
+        $project = $this->publishedProject('Old title');
+        $this->getJson('/api/projects')->assertHeader('X-Cache', 'MISS');
+
+        // Local admin (same database, different server): changes the row and the shared version
+        $project->update(['title' => 'Edited locally']);
+        DB::table('cache')->where('key', 'portfolio:public-content-version')->delete();
+        DB::table('cache')->insert(['key' => 'portfolio:public-content-version', 'value' => 'from-elsewhere', 'expiration' => 2147483647]);
+
+        $this->getJson('/api/projects')->assertHeader('X-Cache', 'HIT'); // within the check interval
+
+        $this->travel(31)->seconds();
+        $this->getJson('/api/projects')->assertHeader('X-Cache', 'MISS')->assertJsonPath('0.title', 'Edited locally');
     }
 
     public function test_failed_admin_write_keeps_the_cache(): void

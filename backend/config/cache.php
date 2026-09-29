@@ -116,9 +116,12 @@ return [
 
     /*
     | Seconds a cached public API response lives (App\Http\Middleware\CachePublicResponse).
-    | Admin writes clear it immediately; this only bounds edits made outside the API.
+    | Admin writes clear it (on every server sharing the database, within
+    | public_version_check seconds); the TTL only bounds edits made in Supabase directly.
     */
 
     'public_ttl' => (int) env('PUBLIC_CACHE_TTL', 600),
+
+    'public_version_check' => (int) env('PUBLIC_CACHE_VERSION_CHECK', 30),
 
 ];
