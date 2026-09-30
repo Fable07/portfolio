@@ -22,13 +22,22 @@ const isAdmin = computed(() => route.path.startsWith('/admin'))
 
 useGlobalShortcuts()
 
-useHead(() => ({
-  title: route.meta.title,
-  meta: [
-    {
-      name: 'description',
-      content: route.meta.description ?? 'Portfolio of Jefferson S. Caragay.',
-    },
-  ],
-}))
+// canonical + og:url point at the clean URL (no ?query or #hash) so search engines index one copy
+useHead(() => {
+  const description = route.meta.description ?? 'Portfolio of Jefferson S. Caragay.'
+  const url = window.location.origin + route.path
+  return {
+    title: route.meta.title,
+    link: [{ rel: 'canonical', href: url }],
+    meta: [
+      { name: 'description', content: description },
+      { property: 'og:description', content: description },
+      { property: 'og:url', content: url },
+      // keep the admin panel and 404 pages out of search results
+      ...(isAdmin.value || route.name === 'not-found'
+        ? [{ name: 'robots', content: 'noindex, nofollow' }]
+        : []),
+    ],
+  }
+})
 </script>

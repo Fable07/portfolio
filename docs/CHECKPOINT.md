@@ -1,25 +1,23 @@
 # Checkpoint
 
-`Last updated: 2026-09-29 · Current phase: LIVE (Vercel + Render) → performance + smoke test`
+`Last updated: 2026-09-30 · Current phase: LIVE → content cleanup + optional features`
 
-## ▶ Resume here (2026-09-29)
+## ▶ Resume here (2026-09-30)
 - **Site LIVE**: frontend on Vercel (production = `main`), API https://portfolio-api-podn.onrender.com. `FRONTEND_URLS` on Render set to the Vercel origin + localhost.
-- Release flow: work on `dev` → `git push origin dev` → `git push origin dev:main` (fast-forward only).
+- Release flow (owner decision 2026-09-30): work on `dev` → `git push origin dev` → GitHub PR `dev` → `main` (Create a merge commit, owner merges manually) → sync: `git pull origin main` on dev + `git push origin dev`. Do not use `git push origin dev:main` any more (main gets merge commits that dev lacks until synced).
 - Render auto-deploy switched to **On Commit** (dashboard + render.yaml, 7416a4c) because GitHub Actions is billing-locked. Revert to `checksPass` in both places once Actions runs again.
 - vercel.json `ignoreCommand` removed (418dcd7): it made Vercel skip Redeploys, so env-var changes never built.
 - Slowness diagnosed: Render = Singapore, Supabase = Sydney (ap-southeast-2) → data calls ~1.3–1.9 s warm vs /up ~0.4 s. Fix: public GET responses cached (CachePublicResponse, flushed on admin writes by FlushPublicCache, TTL `PUBLIC_CACHE_TTL`=600 s for edits made outside the API, e.g. local dev on the shared DB).
 - Caching live (d784c27): cached calls ~0.46 s vs ~1.5 s. Automated smoke test passed (routes, static files, CORS, headers, auth 401/422, APP_DEBUG off). Resume PDF iframe CSP fixed (ff510c2). UptimeRobot skipped by owner (accepts cold starts).
 - Live site: https://jscaragay-portfolio.vercel.app
-- Media features committed on `dev` (7b47a1f, NOT on main yet): video avatar plays on hover, hobby galleries (new nullable `hobbies.media` column), certificate/project PDFs with Cloudinary page-1 previews, f_auto/q_auto delivery, video limit 20 MB. Backend 46 tests, frontend 46 tests, build OK. Not yet tried in a browser.
-- **Before pushing 7b47a1f to main:** (a) owner sets `RUN_MIGRATIONS=true` in Render dashboard (render.yaml already says true → deploy auto-migrates, adds nullable hobbies.media); (b) Cloudinary → Settings → Security → enable "Allow delivery of PDF and ZIP files" (PDFs are now image resources).
-- Media features + auto-migrate LIVE (3b4af02, hobbies.media migrated by Render on deploy).
-- Media cleanup (on dev): Cloudinary deletes now purge the CDN (`invalidate`) and surface failures in logs; `php artisan media:prune` (dry run; `--force` deletes files unreferenced for 24 h+). Cloudinary folders already per collection: `portfolio/{profile,certifications,resume,projects,hobbies}`.
-- ⚠ Local `backend/.env` has `MEDIA_DRIVER=local` → uploads from local admin land on the PC with 127.0.0.1 URLs in the shared DB. Owner to set `MEDIA_DRIVER=cloudinary` + `CLOUDINARY_*` locally (keep `MEDIA_FOLDER=portfolio`).
+- Media features + auto-migrate LIVE (3b4af02): video avatar plays on hover, hobby galleries (`hobbies.media`, migrated by Render on deploy), certificate/project PDFs with Cloudinary page-1 previews, f_auto/q_auto delivery, video limit 20 MB. `RUN_MIGRATIONS=true` on Render; Cloudinary PDF delivery enabled.
+- Media cleanup LIVE via PR #1 (merge 8a160b0): Cloudinary deletes now purge the CDN (`invalidate`) and surface failures in logs; `php artisan media:prune` (dry run; `--force` deletes files unreferenced for 24 h+). Cloudinary folders already per collection: `portfolio/{profile,certifications,resume,projects,hobbies}`.
+- Local backend uploads to Cloudinary now (MEDIA_DRIVER=cloudinary, folder portfolio, ping OK). Shared cache version (c9526fe): local admin saves reach the live API within ~30 s.
+- Admin account recreated by owner 2026-09-30 (users table had 0 rows); upload / remove / cancel tests passed.
 - **Next steps:**
-  1. Owner: reset admin password with `php artisan admin:create <email>` (forgot credentials).
-  2. Owner to clarify what "stale" pages means (old content vs stuck loading).
-  3. Owner browser checks: console CSP errors, send a contact message, Cloudinary upload. Clean up test data (project "forum website", empty profile).
-  4. Fix GitHub billing lock → CI runs again → switch Render back to checksPass.
+  1. Owner: Clean up test data (project "forum website", empty profile). Try the moving-portrait avatar, a hobby gallery and a certificate PDF on the live site; send one contact message.
+  2. Optional: two-factor login for admin (Supabase Auth discussed and deferred; keep Sanctum for now).
+  3. Fix GitHub billing lock → CI runs again → switch Render back to checksPass.
 - The sections below are the detailed history; this block is the current truth.
 
 ## Where we are
@@ -90,3 +88,4 @@ Tell Claude: **"Winky dinky"** (resume phrase, defined in CLAUDE.md) The root `C
 - **2026-09-28** — Render LIVE at https://portfolio-api-podn.onrender.com (manual deploy). /up, /api/projects, /api/visitors/count OK against Supabase. Auto-deploy blocked: GitHub Actions not running ("account is locked due to a billing issue") so checksPass never fires — owner to fix billing or switch render.yaml to autoDeployTrigger: commit. Next: APP_URL on Render, Vercel import (root=frontend, VITE_API_URL=https://portfolio-api-podn.onrender.com/api), then FRONTEND_URLS.
 - **2026-09-28** — S1 closed: owner enabled RLS on all public tables; live API re-tested (projects, hobbies, resume, visitors, login 422 on bad creds) — all OK.
 - **2026-09-29** — Frontend deployed to Vercel (old Vercel project deleted; env `VITE_API_URL` fixed after build skipped by ignoreCommand). CORS wired. Render auto-deploy → On Commit. Added public-response caching (+5 tests, 39 pass / 188 assertions).
+- **2026-09-30** — Media features + auto-migrate live; local uploads switched to Cloudinary; shared cache version; media:prune; first PR (#1) merged; releases now go through PRs.
