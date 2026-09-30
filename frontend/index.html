@@ -25,6 +25,36 @@
     <meta property="og:url" content="https://jscaragay-portfolio.vercel.app/" />
     <meta property="og:image" content="https://jscaragay-portfolio.vercel.app/profile.jpg" />
     <meta name="twitter:card" content="summary" />
+    <!-- Structured data (schema.org) so search engines can show name, role and profiles.
+         A data block, not executable script, so the CSP's script-src doesn't apply. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://jscaragay-portfolio.vercel.app/#website",
+            "url": "https://jscaragay-portfolio.vercel.app/",
+            "name": "Jefferson S. Caragay",
+            "about": { "@id": "https://jscaragay-portfolio.vercel.app/#person" }
+          },
+          {
+            "@type": "Person",
+            "@id": "https://jscaragay-portfolio.vercel.app/#person",
+            "name": "Jefferson S. Caragay",
+            "jobTitle": "Aspiring Full-Stack Developer",
+            "url": "https://jscaragay-portfolio.vercel.app/",
+            "image": "https://jscaragay-portfolio.vercel.app/profile.jpg",
+            "sameAs": [
+              "https://github.com/Fable07",
+              "https://www.linkedin.com/in/jefferson-caragay-5b7489215",
+              "https://www.facebook.com/caragay.sanje.jefferson",
+              "https://t.me/JeffersonCaragay"
+            ]
+          }
+        ]
+      }
+    </script>
     <style>
       #loading-screen {
         position: fixed;
