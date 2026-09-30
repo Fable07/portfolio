@@ -15,12 +15,16 @@
 - Local backend uploads to Cloudinary now (MEDIA_DRIVER=cloudinary, folder portfolio, ping OK). Shared cache version (c9526fe): local admin saves reach the live API within ~30 s.
 - Admin account recreated by owner 2026-09-30 (users table had 0 rows); upload / remove / cancel tests passed.
 - SEO LIVE via PR #3 (closes issue #2): robots.txt, sitemap.xml, static Open Graph tags in index.html, per-route canonical/og:url, noindex on admin + 404. Owner still to submit the sitemap in Google Search Console.
-- **Owner goal (2026-09-30): earn GitHub achievements through small, real PRs.** Owner does all GitHub actions (issues, PRs, merges) — no `gh` auth on this machine. Claude codes, commits + pushes `dev`, then hands over paste-ready issue/PR text with `Closes #N`. Progress: Quickdraw ✅, Pull Shark 2/16 merged PRs.
-- **Next steps:**
-  0. Next PR candidate: email alert on new contact message (Resend recommended vs Brevo — owner to pick).
-  1. Owner: Clean up test data (project "forum website", empty profile). Try the moving-portrait avatar, a hobby gallery and a certificate PDF on the live site; send one contact message.
-  2. Optional: two-factor login for admin (Supabase Auth discussed and deferred; keep Sanctum for now).
-  3. Fix GitHub billing lock → CI runs again → switch Render back to checksPass.
+- JSON-LD structured data (WebSite + Person) LIVE via PR #5 (closes #4).
+- **Owner goal (2026-09-30): earn GitHub achievements through small, real PRs.** Owner does all GitHub actions (issues, PRs, merges) — no `gh` auth on this machine (owner declined: default token covers all repos). Claude codes, commits + pushes `dev`, then hands over paste-ready issue/PR text with `Closes #N`. Progress: Quickdraw ✅, Pair Extraordinaire ✅, Pull Shark: 3 merged PRs (#1, #3, #5) — badge pending GitHub's delay, silver at 16. **YOLO not yet**: needs a PR merged while a requested review is still pending → owner adds a collaborator (Settings → Collaborators), requests their review on the PR, merges without it. PR #5 had no review request.
+- **Admin speed fix — pushed to `dev` (9109c56), PR NOT yet opened/merged.** Root cause measured: pdo_pgsql server-side prepares = 3 round trips per query (prepare/execute/deallocate) → ~0.93 s vs ~0.31 s emulated; Sanctum wrote `last_used_at` on every admin request. Fix: `PDO::ATTR_EMULATE_PREPARES` (env `DB_EMULATE_PREPARES`, default true) + `App\Database\PostgresConnection` (binds booleans as 'true'/'false'; Laravel's 1/0 fails when inlined) + `App\Models\PersonalAccessToken` (last_used_at at most every 5 min). 54 tests pass (3 new, AdminLatencyTest). `DB_PERSISTENT=true` was already on in Render.
+- **Next steps (resume 2026-10-01):**
+  1. Owner opens issue #6 "Admin panel and login are slow" + PR dev→main "perf(api): cut database round trips on every admin request" (`Closes #6`), requests the collaborator's review (YOLO), merges. Claude then syncs dev and **re-measures the live API** (`/auth/me` with bad token was ~1.35 s, `/up` ~0.41 s, cached `/profile` ~0.2 s) to confirm the gain.
+  2. **Direct browser → Cloudinary signed uploads** (backend only signs + registers). Owner decision: images max **10 MB** (Cloudinary free cap; 50 MB impossible on free), videos max **100 MB** (Cloudinary free cap). Current path (browser → Render → Cloudinary) is limited by php.ini 24M/32M, nginx 32M and a 60 s timeout, so large videos must bypass Render.
+  3. **3-in-1 portfolio** (Developer / Network / Security / IoT) — see PLAN.md §10. Write the design first, then a series of PRs.
+  4. Owner: submit sitemap in Google Search Console; try avatar/hobby gallery/certificate PDF + send one contact message on the live site.
+  5. Fix GitHub billing lock → CI runs again → switch Render back to checksPass.
+  - Dropped by owner: Resend/Brevo contact email alert. Deferred: admin two-factor login.
 - The sections below are the detailed history; this block is the current truth.
 
 ## Where we are
@@ -91,5 +95,6 @@ Tell Claude: **"Winky dinky"** (resume phrase, defined in CLAUDE.md) The root `C
 - **2026-09-28** — Render LIVE at https://portfolio-api-podn.onrender.com (manual deploy). /up, /api/projects, /api/visitors/count OK against Supabase. Auto-deploy blocked: GitHub Actions not running ("account is locked due to a billing issue") so checksPass never fires — owner to fix billing or switch render.yaml to autoDeployTrigger: commit. Next: APP_URL on Render, Vercel import (root=frontend, VITE_API_URL=https://portfolio-api-podn.onrender.com/api), then FRONTEND_URLS.
 - **2026-09-28** — S1 closed: owner enabled RLS on all public tables; live API re-tested (projects, hobbies, resume, visitors, login 422 on bad creds) — all OK.
 - **2026-09-29** — Frontend deployed to Vercel (old Vercel project deleted; env `VITE_API_URL` fixed after build skipped by ignoreCommand). CORS wired. Render auto-deploy → On Commit. Added public-response caching (+5 tests, 39 pass / 188 assertions).
+- **2026-09-30** — PR #5 (JSON-LD) merged. Admin slowness diagnosed (3 round trips per query) and fixed on dev (9109c56, PR pending). Owner decisions: uploads 10 MB images / 100 MB videos via direct Cloudinary upload; 3-in-1 portfolio with fully separate content per field and path-prefix URLs.
 - **2026-09-30** — SEO PR #3 merged; GitHub achievements workflow agreed (owner handles GitHub).
 - **2026-09-30** — Media features + auto-migrate live; local uploads switched to Cloudinary; shared cache version; media:prune; first PR (#1) merged; releases now go through PRs.

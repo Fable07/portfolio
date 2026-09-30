@@ -127,3 +127,19 @@ Alternative: fresh `git init` at root (loses history — simpler, not recommende
 - No staging API: dev and prod share one Supabase DB, so a second Render service would not isolate data. Revisit (second Render service on `dev` + second Supabase project) only if the project grows beyond a personal portfolio.
 - **Auto-migrate (owner decision, 2026-09-29):** `RUN_MIGRATIONS=true` on Render — every deploy runs pending migrations before the API starts (a failing migration fails the deploy and the previous version keeps serving). Accepted risk: no CI gate right now and the DB is shared, so keep migrations additive and review them before pushing to main.
 - Release routine: test locally → work on `dev` → `git push origin dev` → GitHub PR `dev` → `main` (Create a merge commit, owner merges manually) → sync: `git pull origin main` on dev + `git push origin dev`. Do not use `git push origin dev:main` any more (main gets merge commits that dev lacks until synced).
+
+## 10. 3-in-1 portfolio: Developer / Network / Security / IoT (owner request, 2026-09-30)
+Goal: one site, four professional "fields". A menu on the right switches field; the page structure stays identical, only the data changes (profile text/roles/skills, projects, certifications, timeline, resume).
+
+Owner decisions (2026-09-30):
+- **Fully separate content per field** — each field has its own records; an item that fits two fields is entered twice (no shared tagging).
+- **Path-prefix URLs** — Developer stays at `/`, `/projects`, … (existing links keep working); others at `/network`, `/network/projects`, `/security/…`, `/iot/…`. Shareable and indexable.
+- Order: admin speed fix → direct Cloudinary uploads → this series.
+
+Open design points (Opus to write up before coding):
+- Schema: add a `field` column (developer|network|security|iot, default `developer`) to projects, certifications, timeline, hobbies?, and make profile/resume one row per field. Additive migrations only (shared DB, auto-migrate on deploy); existing rows become `developer`. Re-run RLS SQL if any new table is created.
+- API: `?field=` filter on public GETs; public cache key must include the field.
+- Frontend: router prefix `/:field(network|security|iot)?`, field switcher menu, per-field sitemap entries, titles/OG tags per field.
+- Admin: field selector in the admin header; every list/editor scoped to the selected field.
+- Which sections are shared vs per field (hobbies, contact, visitor counter likely shared).
+- Planned as ~6–8 small PRs (also counts toward Pull Shark).
