@@ -102,8 +102,11 @@ return [
             // across requests, which locally is the difference between a 4s and a 1s API
             // call. Off by default: it only helps long-lived processes (artisan serve,
             // php-fpm workers), and Supabase's session pooler holds the connection open.
+            // Emulated prepares: one round trip per query instead of three (prepare, execute,
+            // deallocate). Booleans are bound safely by App\Database\PostgresConnection.
             'options' => [
                 PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', false),
+                PDO::ATTR_EMULATE_PREPARES => env('DB_EMULATE_PREPARES', true),
             ],
         ],
 
