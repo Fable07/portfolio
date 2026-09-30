@@ -14,7 +14,10 @@
 - Media cleanup LIVE via PR #1 (merge 8a160b0): Cloudinary deletes now purge the CDN (`invalidate`) and surface failures in logs; `php artisan media:prune` (dry run; `--force` deletes files unreferenced for 24 h+). Cloudinary folders already per collection: `portfolio/{profile,certifications,resume,projects,hobbies}`.
 - Local backend uploads to Cloudinary now (MEDIA_DRIVER=cloudinary, folder portfolio, ping OK). Shared cache version (c9526fe): local admin saves reach the live API within ~30 s.
 - Admin account recreated by owner 2026-09-30 (users table had 0 rows); upload / remove / cancel tests passed.
+- SEO LIVE via PR #3 (closes issue #2): robots.txt, sitemap.xml, static Open Graph tags in index.html, per-route canonical/og:url, noindex on admin + 404. Owner still to submit the sitemap in Google Search Console.
+- **Owner goal (2026-09-30): earn GitHub achievements through small, real PRs.** Owner does all GitHub actions (issues, PRs, merges) — no `gh` auth on this machine. Claude codes, commits + pushes `dev`, then hands over paste-ready issue/PR text with `Closes #N`. Progress: Quickdraw ✅, Pull Shark 2/16 merged PRs.
 - **Next steps:**
+  0. Next PR candidate: email alert on new contact message (Resend recommended vs Brevo — owner to pick).
   1. Owner: Clean up test data (project "forum website", empty profile). Try the moving-portrait avatar, a hobby gallery and a certificate PDF on the live site; send one contact message.
   2. Optional: two-factor login for admin (Supabase Auth discussed and deferred; keep Sanctum for now).
   3. Fix GitHub billing lock → CI runs again → switch Render back to checksPass.
@@ -88,4 +91,5 @@ Tell Claude: **"Winky dinky"** (resume phrase, defined in CLAUDE.md) The root `C
 - **2026-09-28** — Render LIVE at https://portfolio-api-podn.onrender.com (manual deploy). /up, /api/projects, /api/visitors/count OK against Supabase. Auto-deploy blocked: GitHub Actions not running ("account is locked due to a billing issue") so checksPass never fires — owner to fix billing or switch render.yaml to autoDeployTrigger: commit. Next: APP_URL on Render, Vercel import (root=frontend, VITE_API_URL=https://portfolio-api-podn.onrender.com/api), then FRONTEND_URLS.
 - **2026-09-28** — S1 closed: owner enabled RLS on all public tables; live API re-tested (projects, hobbies, resume, visitors, login 422 on bad creds) — all OK.
 - **2026-09-29** — Frontend deployed to Vercel (old Vercel project deleted; env `VITE_API_URL` fixed after build skipped by ignoreCommand). CORS wired. Render auto-deploy → On Commit. Added public-response caching (+5 tests, 39 pass / 188 assertions).
+- **2026-09-30** — SEO PR #3 merged; GitHub achievements workflow agreed (owner handles GitHub).
 - **2026-09-30** — Media features + auto-migrate live; local uploads switched to Cloudinary; shared cache version; media:prune; first PR (#1) merged; releases now go through PRs.
